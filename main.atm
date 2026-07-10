@@ -39,11 +39,7 @@ val SEC = [
     ],
 ]
 
-;; names and logos per side; arbitro apart (v4.3 has no prefixo)
-val NOME   = [esq="Atleta 1", dir="Atleta 2"]
-val IMAGEM = [esq=CONF.imagem1, dir=CONF.imagem2]
-val NOME_ARB   = CONF.arbitro
-val LADO_RADAR = (if CONF.lado_radar == 1 => :esq => :dir)
+val NOMES = [esq="Atleta 1", dir="Atleta 2", arb=CONF.arbitro]
 
 ;; idle game state (all zero until Phase 2/3)
 val JOGO_QUEDAS   = 0
@@ -89,9 +85,9 @@ task Cima (lado) {
         nome = pico.xin.rect(sec, ['%', x=0.5, y=0.70, h=0.25])
     ]
     loop on :draw {
-        pico.output.draw.image(IMAGEM@lado, rs.logo)
+        pico.output.draw.image(CONF.logo@lado, rs.logo)
         pico.set.pencil [ color=:blue ]
-        pico.output.draw.text(NOME@lado, rs.nome)
+        pico.output.draw.text(NOMES@lado, rs.nome)
     }
 }
 
@@ -127,7 +123,7 @@ task Meio (lado) {
         ico = pico.xin.rect(sec, ['%', x=(if lado == :esq => 0.05 => 0.95), y=0.5, h=0.20])
     ]
     loop on :draw {
-        if conf_radar() && (LADO_RADAR == lado) {
+        if conf_radar() && (CONF.lado.radar == lado) {
             pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
         }
     }
@@ -180,7 +176,7 @@ task Baixo (lado) {
 ;; TYPE 6 (pontos): bottom box: juiz, recorde + trophy, TOTAL, conta line
 task Pontos () {
     val sec = SEC.pontos
-    val w1 = txt_w(sec, NOME_ARB, 0.05)
+    val w1 = txt_w(sec, NOMES.arb, 0.05)
     val w2 = txt_w(sec, tostring(CONF.recorde), 0.10)
     val conta = "(" ++ (JOGO_PONTOS + JOGO_PONTOS) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
     val rs = [
@@ -196,7 +192,7 @@ task Pontos () {
         pico.set.pencil [ color=:black, style=:fill ]
         pico.output.draw.rect(rs.box)
         pico.set.pencil [ color=GRAY ]
-        pico.output.draw.text(NOME_ARB, rs.arb)
+        pico.output.draw.text(NOMES.arb, rs.arb)
         pico.set.pencil [ color=(if JOGO_TOTAL >= CONF.recorde => GRAY => ROSE) ]
         pico.output.draw.text(tostring(CONF.recorde), rs.rec)
         pico.set.pencil [ color=:white ]
