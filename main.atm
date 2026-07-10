@@ -95,6 +95,12 @@ task Box (clr, rect) {
         pico.output.draw.rect(rect)
     }
 }
+task Oval (clr, rect) {
+    loop on :draw {
+        pico.set.pencil [ color=clr, style='fill' ]
+        pico.output.draw.oval(rect)
+    }
+}
 
 ;; TYPE 1 (tl, tr): logo + atleta name
 task Atleta (sec, logo, nome) {
@@ -127,12 +133,9 @@ task Meio (sec, lado) {
 task Quedas (sec) {
     val h = 0.75
     val w = ((h * sec.h) * WIN.h) / (sec.w * WIN.w)
-    val oval = pico.xin.rect(sec, ['%', x=0.5, y=0.5, w=w, h=h, anchor='C'])
+    spawn Oval('red', pico.xin.rect(sec, ['%', x=0.5, y=0.5, w=w, h=h, anchor='C']))
     spawn Text(tostring(JOGO_QUEDAS), 'white', pico.xin.rect(sec, ['%', x=0.5, y=0.44, h=0.44, anchor='C']))
-    loop on :draw {
-        pico.set.pencil [ color='red', style='fill' ]
-        pico.output.draw.oval(oval)
-    }
+    await(:quit)
 }
 
 ;; TYPE 5 (bl, br): side panel: raquete, golpes/limite, maximas, flag, pontos
