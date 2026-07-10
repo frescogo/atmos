@@ -5,8 +5,9 @@ val pico = require "pico"
 val CONF = require "conf"
 
 val G = [
-    inv = false,    ;; screen inverted
-    edit = nil,     ;; name being typed: nil,:arb,:esq,:dir
+    inv    = false,     ;; screen inverted
+    edit   = nil,       ;; name being typed: nil,:arb,:esq,:dir
+    estado = :ocioso,   ;; :ocioso | :sacando (:jogando in Phase 3)
 ]
 
 ;;val WIN = [w=1920,h=1080]
@@ -56,12 +57,13 @@ func inv (lado) {
     }
 }
 
-;; idle game state (all zero until Phase 2/3)
+;; game state: seqs of golpes [now=, jog=]; scoring comes in Phase 3
 val JOGO = [
+    seqs     = [],
     quedas   = 0,
     total    = 0,
-    golpes   = 0,
-    pontos   = 0,
+    golpes   = [esq=0, dir=0],
+    pontos   = [esq=0, dir=0],
     descanso = CONF.descanso,
 ]
 
@@ -139,6 +141,36 @@ task Digita (alvo) {
             }
         }
         set NOMES@alvo = old ++ '_'
+    }
+}
+
+;; PARTIDA: ocioso -> saque (C-Up) -> golpes (Left/Right) ->
+;;          queda (C-Down) -> ocioso; arrows are exempt from Hold (v4.3)
+task Partida () {
+    loop {
+        set G.estado = :ocioso
+        await :key.dn [key=:Up, ctrl=true]
+        set G.estado = :sacando
+        pico.output.sound("data/snds/start.wav")
+        set JOGO.seqs@+ = []
+        watching :key.dn [key=:Down, ctrl=true] {
+            var e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
+            set G.estado = :jogando
+            loop {
+                val jog = match e.key {
+                    :Left  => inv(:esq)
+                    :Right => inv(:dir)
+                }
+                if jog {
+                    set JOGO.seqs@#@+ = [now=pico.get.now(), jog=jog]
+                    set JOGO.golpes@jog = JOGO.golpes@jog + 1
+                    pico.output.sound("data/snds/peteleco.wav")
+                }
+                set e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
+            }
+        }
+        set JOGO.quedas = JOGO.quedas + 1
+        pico.output.sound("data/snds/fall.wav")
     }
 }
 
@@ -224,32 +256,32 @@ task Baixo (lado) {
     val atas = conf.ataques()
     val ix = (if lado == :esq => 0.25 => 0.75)
     val nx = (if lado == :esq => 0.55 => 0.45)
-    val w1 = txt_w(sec, tostring(JOGO.golpes), 0.05)
     val rs = [
         raq  = pico.xin.rect(sec) <- ['%', x=ix, y=0.30, h=0.15],
         flag = pico.xin.rect(sec) <- ['%', x=ix, y=0.75, h=0.10],
         glp  = pico.xin.rect(sec) <- ['%', x=nx, y=0.30, h=0.15],
-        lim  = pico.xin.rect(sec) <- [
-            '%', x=nx + w1 + 0.05, y=0.35, h=0.05, anchor=:NW
-        ],
         pts  = pico.xin.rect(sec) <- ['%', x=nx, y=0.70, h=0.15],
     ]
     loop on :draw {
+        val jog = inv(lado)
+        val glp = JOGO.golpes@jog
         pico.output.draw.image("data/icos/raquete.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
-        pico.set.pencil [ color=(if (atas > 0) && (JOGO.golpes >= atas) => :red => :black) ]
-        pico.output.draw.text(tostring(JOGO.golpes), rs.glp)
+        pico.set.pencil [ color=(if (atas > 0) && (glp >= atas) => :red => :black) ]
+        pico.output.draw.text(tostring(glp), rs.glp)
+        val w1 = txt_w(sec, tostring(glp), 0.05)
         pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text("/" ++ atas, rs.lim)
+        pico.output.draw.text("/" ++ atas, pico.xin.rect(sec) <- [
+            '%', x=nx + w1 + 0.05, y=0.35, h=0.05, anchor=:NW
+        ])
         pico.set.pencil [ color=:black ]
-        pico.output.draw.text(tostring(JOGO.pontos), rs.pts)
+        pico.output.draw.text(tostring(JOGO.pontos@jog), rs.pts)
     }
 }
 
 ;; TYPE 6 (pontos): bottom box: juiz, recorde + trophy, TOTAL, conta line
 task Pontos () {
     val sec = SEC.pontos
-    val conta = "(" ++ (JOGO.pontos + JOGO.pontos) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
     val rs = [
         box = pico.xin.rect(sec) <- ['%', x=0,   y=0,    h=1,w=1, anchor=:NW],
         api = pico.xin.rect(sec) <- ['%', x=0.1, y=0.05, h=0.07,  anchor=:W],
@@ -275,6 +307,7 @@ task Pontos () {
         pico.output.draw.text(tostring(JOGO.total), rs.tot)
 
         pico.output.draw.image("data/icos/trophy.png", rs.tro)
+        val conta = "(" ++ (JOGO.pontos.esq + JOGO.pontos.dir) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text(conta, rs.cta)
     }
@@ -304,6 +337,8 @@ spawn Quedas()
 spawn Baixo(:esq)
 spawn Baixo(:dir)
 spawn Pontos()
+
+spawn Partida()
 
 spawn {
     loop {
