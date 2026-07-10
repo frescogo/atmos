@@ -1,0 +1,198 @@
+;; FrescoGO! scoreboard ported from Processing (placar.pde) to pico-atmos.
+;; Phase 1: static idle screen ("ocioso" state, empty game, all counters 0).
+
+require "atmos.env.pico"
+val pico = require "pico"
+val CONF = require "conf"
+
+val VERSAO = "5.3.0"
+val WIN_W  = 1000
+val WIN_H  = 600
+val GRAY   = 0x969696
+val GREEN  = 0x00C800
+val ROSE   = 0xC86464
+
+;; original Processing grid: 11 columns x 8 rows
+;; X/Y map grid cells to '%' coords; DX/DY map N*dx/N*dy (0.001 of win) offsets
+func X (col) { col / 11 }
+func Y (row) { row / 8 }
+func DX (n) { n / 1000 }
+func DY (n) { n / 1000 }
+
+pico.set.window [ title = ("FrescoGO! " ++ VERSAO) ]
+pico.set.dim ['!', w=WIN_W, h=WIN_H]
+pico.set.pencil [ font="data/LiberationSans-Bold.ttf" ]
+
+;; names: 1=esq, 2=dir, 3=arbitro, 4=prefixo
+val NOME_ESQ = "Atleta 1"
+val NOME_DIR = "Atleta 2"
+val NOME_ARB = CONF.arbitro
+val NOME_PRE = CONF.prefixo
+
+;; idle game state (all zero until Phase 2/3)
+val JOGO_QUEDAS   = 0
+val JOGO_TOTAL    = 0
+val JOGO_GOLPES   = 0
+val JOGO_PONTOS   = 0
+val JOGO_NRMS     = 0
+val JOGO_BAKS     = 0
+val JOGO_INSS     = 0
+val JOGO_DESCANSO = CONF.descanso
+
+;; derived configuration (dupla only; trinca variants in Phase 3)
+func conf_radar () {
+    false
+}
+func conf_tregua () {
+    math.floor((CONF.tregua * CONF.tempo) / 60)
+}
+func conf_quedas () {
+    math.floor(((CONF.quedas * CONF.tempo) / 60) / 1000)
+}
+func conf_tempo () {
+    CONF.tempo + (conf_tregua() * conf_quedas())
+}
+func conf_golpes () {
+    math.max(1, math.floor(((CONF.tempo * CONF.golpes) / 60) / 2))
+}
+func conf_maximas () {
+    math.max(1, math.floor(((CONF.tempo * CONF.potentes) / 60) / 2))
+}
+func conf_pars () {
+    "v" ++ VERSAO ++ " / " ++ (if CONF.trinca => "trinca" => "dupla") ++ " / " ++ (if conf_radar() => "radar" => (CONF.distancia ++ "cm")) ++ " / " ++ (if CONF.continuos == 0 => "-cnts" => "+cnts") ++ " / " ++ (if CONF.potentes == 0 => "-pots" => "+pots") ++ " / " ++ CONF.tempo ++ "s"
+}
+
+;; drawing helpers
+func txt (s, clr, x, y, h, anc) {
+    pico.set.pencil [ color=clr ]
+    pico.output.draw.text(s, ['%', x=x, y=y, h=h, anchor=anc])
+}
+func txt_w (s, h) {
+    val d = pico.get.text(['%', h=h], s)
+    d.w
+}
+func img (path, x, y, h) {
+    pico.output.draw.image(path, ['%', x=x, y=y, h=h])
+}
+
+;; BACKGROUND: white clear each frame
+spawn {
+    val r = ['%', x=0, y=0, w=1, h=1, anchor='NW']
+    loop on :draw {
+        pico.set.pencil [ color='white', style='fill' ]
+        pico.output.draw.rect(r)
+    }
+}
+
+;; LOGOS: imagem1/imagem2 at cols 2 and 9, row 1
+spawn {
+    loop on :draw {
+        img(CONF.imagem1, X(2), Y(1), 0.125)
+        img(CONF.imagem2, X(9), Y(1), 0.125)
+    }
+}
+
+;; NAMES: blue, above the middle band
+spawn {
+    loop on :draw {
+        txt(NOME_ESQ, 'blue', X(2), Y(2.25) - DY(10), 0.090, 'C')
+        txt(NOME_DIR, 'blue', X(9), Y(2.25) - DY(10), 0.090, 'C')
+    }
+}
+
+;; TIMER BOX: black rect cols 4-7 rows 0-3, mm:ss, pars line, descanso line
+spawn {
+    val show = conf_tempo()
+    val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
+    val box = ['%', x=X(4), y=0, w=X(3), h=Y(3), anchor='NW']
+    loop on :draw {
+        pico.set.pencil [ color='black', style='fill' ]
+        pico.output.draw.rect(box)
+        txt(mmss, 'white', 0.5, Y(1.25) - DY(10), 0.140, 'C')
+        txt("(" ++ conf_pars() ++ ")", GRAY, 0.5, 0, 0.018, 'N')
+        txt(JOGO_DESCANSO ++ " s", GRAY, 0.5, Y(2.5), 0.035, 'C')
+        img("data/icos/timeout-03.png", 0.5 - DX(50), Y(2.5), 0.025)
+    }
+}
+
+;; MIDDLE BAND: white rect rows 3-5 with black border
+spawn {
+    val band = ['%', x=0, y=Y(3), w=1, h=Y(2), anchor='NW']
+    loop on :draw {
+        pico.set.pencil [ color='white', style='fill' ]
+        pico.output.draw.rect(band)
+        pico.set.pencil [ color='black', style='stroke' ]
+        pico.output.draw.rect(band)
+    }
+}
+
+;; QUEDAS: red circle at the center with white counter
+spawn {
+    val oval = ['%', x=0.5, y=0.5, w=(1.5 / 8) * (WIN_H / WIN_W), h=1.5/8, anchor='C']
+    loop on :draw {
+        pico.set.pencil [ color='red', style='fill' ]
+        pico.output.draw.oval(oval)
+        txt(tostring(JOGO_QUEDAS), 'white', 0.5, 0.5 - DY(15), 0.110, 'C')
+    }
+}
+
+;; SIDE PANELS: raquete + golpes/limite, flag, maximas, pontos
+func lado_maximas (x, n, y) {
+    val atas = conf_maximas()
+    val m = math.min(atas, n)
+    txt(tostring(m), (if n >= atas => GREEN => 'black'), x + X(3.5), y, 0.040, 'C')
+    val w2 = txt_w(tostring(m), 0.015)
+    txt("/" ++ atas, GRAY, x + X(3.5) + w2 + DX(10), y + DY(20), 0.015, 'NW')
+}
+func lado (x, golpes, pontos, nrms, baks, inss) {
+    img("data/icos/raq-03.png", x + X(0.5), Y(5.875) + DY(5), 0.050)
+    img("data/icos/flag.png", x + X(0.5), Y(7.125) + DY(10), 0.040)
+    val glps = conf_golpes()
+    txt(tostring(golpes), (if (glps > 0) && (golpes >= glps) => GREEN => 'black'), x + X(2), Y(5.875), 0.065, 'C')
+    val w1 = txt_w(tostring(golpes), 0.020)
+    txt("/" ++ glps, GRAY, x + X(2) + w1 + DX(10), Y(5.875) + DY(30), 0.020, 'NW')
+    if CONF.continuos != 0 {
+        txt("+" ++ inss, GRAY, x + X(2) + w1 + DX(15), Y(5.875), 0.020, 'NW')
+    }
+    if CONF.potentes != 0 {
+        lado_maximas(x, nrms, Y(5.625))
+        lado_maximas(x, baks, Y(6.125))
+    }
+    txt(tostring(pontos), 'black', x + X(2), Y(7.125), 0.065, 'C')
+}
+spawn {
+    loop on :draw {
+        lado(X(0), JOGO_GOLPES, JOGO_PONTOS, JOGO_NRMS, JOGO_BAKS, JOGO_INSS)
+        lado(X(7), JOGO_GOLPES, JOGO_PONTOS, JOGO_NRMS, JOGO_BAKS, JOGO_INSS)
+    }
+}
+
+;; BOTTOM BOX: black rect cols 4-7 rows 5-8; juiz, prefixo, recorde, TOTAL
+spawn {
+    val box = ['%', x=X(4), y=Y(5), w=X(3), h=Y(3), anchor='NW']
+    loop on :draw {
+        pico.set.pencil [ color='black', style='fill' ]
+        pico.output.draw.rect(box)
+        txt(NOME_ARB, GRAY, 0.5 - X(0.75), Y(5) + DY(12), 0.020, 'N')
+        val w1 = txt_w(NOME_ARB, 0.020)
+        img("data/icos/apito-04.png", 0.5 - X(0.75) - (w1 / 2) - DX(15), Y(5) + DY(20), 0.030)
+        txt(NOME_PRE, GRAY, 0.5 + X(0.75), Y(5) + DY(12), 0.020, 'N')
+        txt(tostring(CONF.recorde), (if JOGO_TOTAL >= CONF.recorde => GRAY => ROSE), 0.5, Y(7.75) - DY(15), 0.035, 'C')
+        val w2 = txt_w(tostring(CONF.recorde), 0.035)
+        img("data/icos/trophy-02.png", 0.5 - (w2 / 2) - DX(25), Y(7.75) - DY(10), 0.030)
+        txt(tostring(JOGO_TOTAL), 'white', 0.5, Y(6.25), 0.140, 'C')
+    }
+}
+
+;; RADAR ICON: radar side, row 4 (only drawn when radar is on; Phase 4)
+spawn {
+    val rx = (if CONF.lado_radar == 1 => DX(20) => (1 - DX(20)))
+    loop on :draw {
+        if conf_radar() {
+            img("data/icos/radar_ok.png", rx, Y(4), 0.050)
+        }
+    }
+}
+
+;; Phase 1 has no key bindings yet: wait for the window to close
+await(:quit)
