@@ -1,16 +1,15 @@
-;; hand-converted from ../placar-radar/placar/data/conf.json
+;; hand-converted from ../placar-radar/placar/data/conf.json (v4.3.0)
 [
     tempo       = 300,
     distancia   = 750,
-    golpes      = 60,
-    continuos   = 10,
-    potentes    = 10,
+    ataques     = 60,
     equilibrio  = 130,
     minima      = 50,
     maxima      = 85,
     trinca      = false,
     tregua      = 1,
-    quedas      = 2400,
+    quedas      = 1500,
+    aborta      = 15,
     saque       = 45,
     esquenta    = 60,
     descanso    = 90,
@@ -22,7 +21,8 @@
     recorde     = 0,
     imagem1     = "data/fresco-radar.png",
     imagem2     = "data/fresco-radar.png",
-    arbitro     = "Árbitro",
-    prefixo     = "MIX_AA",
+    ;; "Árbitro" crashes pico-sdl _tex_text: the 'Á' raster exceeds
+    ;; the "|gjpqyA" reference cell assertion (src/mem.c:264)
+    arbitro     = "Arbitro",
     serial      = ""
 ]

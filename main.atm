@@ -1,4 +1,4 @@
-;; FrescoGO! scoreboard ported from Processing (placar.pde) to pico-atmos.
+;; FrescoGO! scoreboard ported from Processing (placar.pde v4.3.0) to pico-atmos.
 ;; Phase 1: static idle screen ("ocioso" state, empty game, all counters 0).
 ;; Layout: screen split in 3x3 sections, 6 task types with 9 instances;
 ;; each instance resolves its rects once via pico.xin from section-local
@@ -8,11 +8,10 @@ require "atmos.env.pico"
 val pico = require "pico"
 val CONF = require "conf"
 
-val VERSAO = "5.3.0"
+val VERSAO = "4.3.0"
 ;;val WIN = [w=1920,h=1080]
 val WIN = [w=1280,h= 720]
 val GRAY   = 0x969696
-val GREEN  = 0x00C800
 val ROSE   = 0xC86464
 
 pico.set.window [ title = ("FrescoGO! " ++ VERSAO) ]
@@ -32,43 +31,39 @@ val SEC = [
     br = ['%', x=7/11, y=5/8, w=4/11, h=3/8, anchor=:NW]
 ]
 
-;; names: esq, dir, arbitro, prefixo
+;; names: esq, dir, arbitro (v4.3 has no prefixo)
 val NOME_ESQ = "Atleta 1"
 val NOME_DIR = "Atleta 2"
 val NOME_ARB = CONF.arbitro
-val NOME_PRE = CONF.prefixo
 
 ;; idle game state (all zero until Phase 2/3)
 val JOGO_QUEDAS   = 0
 val JOGO_TOTAL    = 0
 val JOGO_GOLPES   = 0
 val JOGO_PONTOS   = 0
-val JOGO_NRMS     = 0
-val JOGO_BAKS     = 0
-val JOGO_INSS     = 0
 val JOGO_DESCANSO = CONF.descanso
 
-;; derived configuration (dupla only; trinca variants in Phase 3)
+;; derived configuration (dupla only; trinca/esquenta variants in Phase 3)
 func conf_radar () {
     false
 }
-func conf_tregua () {
-    math.floor((CONF.tregua * CONF.tempo) / 60)
-}
-func conf_quedas () {
-    math.floor(((CONF.quedas * CONF.tempo) / 60) / 1000)
-}
 func conf_tempo () {
-    CONF.tempo + (conf_tregua() * conf_quedas())
+    CONF.tempo
 }
-func conf_golpes () {
-    math.max(1, math.floor(((CONF.tempo * CONF.golpes) / 60) / 2))
+func conf_ataques () {
+    math.max(1, math.floor(((conf_tempo() * CONF.ataques) / 60) / 2))
 }
-func conf_maximas () {
-    math.max(1, math.floor(((CONF.tempo * CONF.potentes) / 60) / 2))
+func conf_quedas_base () {
+    math.floor((CONF.tregua * conf_tempo()) / 60)
+}
+func conf_quedas_pena () {
+    math.floor((CONF.quedas * 60) / conf_tempo())
+}
+func jogo_quedas_pct () {
+    math.max(0, JOGO_QUEDAS - conf_quedas_base()) * conf_quedas_pena()
 }
 func conf_pars () {
-    "v" ++ VERSAO ++ " / " ++ (if CONF.trinca => "trinca" => "dupla") ++ " / " ++ (if conf_radar() => "radar" => (CONF.distancia ++ "cm")) ++ " / " ++ (if CONF.continuos == 0 => "-cnts" => "+cnts") ++ " / " ++ (if CONF.potentes == 0 => "-pots" => "+pots") ++ " / " ++ CONF.tempo ++ "s"
+    "v" ++ VERSAO ++ " / " ++ (if CONF.trinca => "trinca" => "dupla") ++ " / " ++ (if conf_radar() => "radar" => (CONF.distancia ++ "cm")) ++ " / " ++ conf_tempo() ++ "s"
 }
 
 ;; text width in section-local '%' for a section-local height
@@ -114,7 +109,7 @@ task Clock (sec) {
     }
 }
 
-;; TYPE 3 (ml, mr): radar icon now; last golpe km/h in Phase 3
+;; TYPE 3 (ml, mr): radar ok/no icon now; last golpe km/h in Phase 3
 task Meio (sec, lado) {
     val rs = [
         ico = pico.xin.rect(sec, ['%', x=(if lado == 1 => 0.05 => 0.95), y=0.5, h=0.20])
@@ -142,75 +137,57 @@ task Quedas (sec) {
     }
 }
 
-;; TYPE 5 (bl, br): side panel: raquete, golpes/limite, maximas, flag, pontos
-task Painel (sec) {
-    val glps = conf_golpes()
-    val atas = conf_maximas()
-    val mn = math.min(atas, JOGO_NRMS)
-    val mb = math.min(atas, JOGO_BAKS)
+;; TYPE 5 (bl, br): side panel: raquete, golpes/limite, flag, pontos;
+;; positions mirror horizontally between esq (lado=1) and dir (lado=2)
+task Painel (sec, lado) {
+    val atas = conf_ataques()
+    val ix = (if lado == 1 => 0.25 => 0.75)
+    val nx = (if lado == 1 => 0.55 => 0.45)
     val w1 = txt_w(sec, tostring(JOGO_GOLPES), 0.05)
-    val wn = txt_w(sec, tostring(mn), 0.05)
-    val wb = txt_w(sec, tostring(mb), 0.05)
     val rs = [
-        raq  = pico.xin.rect(sec, ['%', x=0.10, y=0.30, h=0.15]),
-        flag = pico.xin.rect(sec, ['%', x=0.10, y=0.75, h=0.10]),
-        glp  = pico.xin.rect(sec, ['%', x=0.5, y=0.30, h=0.15]),
-        lim  = pico.xin.rect(sec, ['%', x=0.5 + w1 + 0.05, y=0.35, h=0.05, anchor=:NW]),
-        ins  = pico.xin.rect(sec, ['%', x=0.5 + w1 + 0.05, y=0.30, h=0.05, anchor=:NW]),
-        nrm  = pico.xin.rect(sec, ['%', x=0.85, y=0.20, h=0.10]),
-        nrml = pico.xin.rect(sec, ['%', x=0.85 + wn + 0.05, y=0.25, h=0.05, anchor=:NW]),
-        bak  = pico.xin.rect(sec, ['%', x=0.85, y=0.40, h=0.10]),
-        bakl = pico.xin.rect(sec, ['%', x=0.85 + wb + 0.05, y=0.45, h=0.05, anchor=:NW]),
-        pts  = pico.xin.rect(sec, ['%', x=0.5, y=0.70, h=0.15])
+        raq  = pico.xin.rect(sec, ['%', x=ix, y=0.30, h=0.15]),
+        flag = pico.xin.rect(sec, ['%', x=ix, y=0.75, h=0.10]),
+        glp  = pico.xin.rect(sec, ['%', x=nx, y=0.30, h=0.15]),
+        lim  = pico.xin.rect(sec, ['%', x=nx + w1 + 0.05, y=0.35, h=0.05, anchor=:NW]),
+        pts  = pico.xin.rect(sec, ['%', x=nx, y=0.70, h=0.15])
     ]
     loop on :draw {
         pico.output.draw.image("data/icos/raq-03.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
-        pico.set.pencil [ color=(if (glps > 0) && (JOGO_GOLPES >= glps) => GREEN => :black) ]
+        pico.set.pencil [ color=(if (atas > 0) && (JOGO_GOLPES >= atas) => :red => :black) ]
         pico.output.draw.text(tostring(JOGO_GOLPES), rs.glp)
         pico.set.pencil [ color=GRAY ]
-        pico.output.draw.text("/" ++ glps, rs.lim)
-        if CONF.continuos != 0 {
-            pico.output.draw.text("+" ++ JOGO_INSS, rs.ins)
-        }
-        if CONF.potentes != 0 {
-            pico.set.pencil [ color=(if JOGO_NRMS >= atas => GREEN => :black) ]
-            pico.output.draw.text(tostring(mn), rs.nrm)
-            pico.set.pencil [ color=GRAY ]
-            pico.output.draw.text("/" ++ atas, rs.nrml)
-            pico.set.pencil [ color=(if JOGO_BAKS >= atas => GREEN => :black) ]
-            pico.output.draw.text(tostring(mb), rs.bak)
-            pico.set.pencil [ color=GRAY ]
-            pico.output.draw.text("/" ++ atas, rs.bakl)
-        }
+        pico.output.draw.text("/" ++ atas, rs.lim)
         pico.set.pencil [ color=:black ]
         pico.output.draw.text(tostring(JOGO_PONTOS), rs.pts)
     }
 }
 
-;; TYPE 6 (bc): bottom box: juiz, prefixo, recorde + trophy, TOTAL
+;; TYPE 6 (bc): bottom box: juiz, recorde + trophy, TOTAL, conta line
 task Pontos (sec) {
     val w1 = txt_w(sec, NOME_ARB, 0.05)
     val w2 = txt_w(sec, tostring(CONF.recorde), 0.10)
+    val conta = "(" ++ (JOGO_PONTOS + JOGO_PONTOS) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
     val rs = [
         box = pico.xin.rect(sec, ['%', x=0, y=0, w=1, h=1, anchor=:NW]),
-        arb = pico.xin.rect(sec, ['%', x=0.25, y=0.05, h=0.05, anchor=:N]),
-        pre = pico.xin.rect(sec, ['%', x=0.75, y=0.05, h=0.05, anchor=:N]),
-        rec = pico.xin.rect(sec, ['%', x=0.5, y=0.90, h=0.10]),
-        tot = pico.xin.rect(sec, ['%', x=0.5, y=0.40, h=0.35]),
-        api = pico.xin.rect(sec, ['%', x=0.25 - (w1 / 2) - 0.05, y=0.05, h=0.10]),
-        tro = pico.xin.rect(sec, ['%', x=0.5 - (w2 / 2) - 0.10, y=0.90, h=0.10])
+        arb = pico.xin.rect(sec, ['%', x=0.5, y=0.05, h=0.05, anchor=:N]),
+        api = pico.xin.rect(sec, ['%', x=0.5 - (w1 / 2) - 0.05, y=0.05, h=0.10]),
+        rec = pico.xin.rect(sec, ['%', x=0.5, y=0.30, h=0.10]),
+        tro = pico.xin.rect(sec, ['%', x=0.5 - (w2 / 2) - 0.10, y=0.30, h=0.10]),
+        tot = pico.xin.rect(sec, ['%', x=0.5, y=0.60, h=0.35]),
+        cta = pico.xin.rect(sec, ['%', x=0.5, y=0.90, h=0.05])
     ]
     loop on :draw {
         pico.set.pencil [ color=:black, style=:fill ]
         pico.output.draw.rect(rs.box)
         pico.set.pencil [ color=GRAY ]
         pico.output.draw.text(NOME_ARB, rs.arb)
-        pico.output.draw.text(NOME_PRE, rs.pre)
         pico.set.pencil [ color=(if JOGO_TOTAL >= CONF.recorde => GRAY => ROSE) ]
         pico.output.draw.text(tostring(CONF.recorde), rs.rec)
         pico.set.pencil [ color=:white ]
         pico.output.draw.text(tostring(JOGO_TOTAL), rs.tot)
+        pico.set.pencil [ color=GRAY ]
+        pico.output.draw.text(conta, rs.cta)
         pico.output.draw.image("data/icos/apito-04.png", rs.api)
         pico.output.draw.image("data/icos/trophy-02.png", rs.tro)
     }
@@ -237,8 +214,8 @@ spawn Clock(SEC.tc)
 spawn Meio(SEC.ml, 1)
 spawn Meio(SEC.mr, 2)
 spawn Quedas(SEC.mc)
-spawn Painel(SEC.bl)
-spawn Painel(SEC.br)
+spawn Painel(SEC.bl, 1)
+spawn Painel(SEC.br, 2)
 spawn Pontos(SEC.bc)
 
 ;; Phase 1 has no key bindings yet: wait for the window to close
