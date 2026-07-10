@@ -7,14 +7,15 @@ val CONF = require "conf"
 ;;val WIN = [w=1920,h=1080]
 val WIN  = [w=1280,h= 720]
 
-val COLORS = [
-    gray = 0x969696,
-    rose = 0xC86464,
-]
-
 pico.set.window [ title = ("FrescoGO! " ++ VERSAO) ]
 pico.set.dim ['!', w=WIN.w, h=WIN.h]
 pico.set.pencil [ font="data/LiberationSans-Bold.ttf" ]
+
+val COLORS = [
+    gray  = 0x969696,
+    rose  = 0xC86464,
+    green = 0x009600,
+]
 
 ;; 3x3 sections:
 ;;  cols: 4/11 + 3/11 + 4/11
@@ -41,6 +42,16 @@ val SEC = [
 ]
 
 val NOMES = [esq="Atleta 1", dir="Atleta 2", arb=CONF.arbitro]
+
+;; screen side -> player, swapped by C-i (INV)
+var INV = false
+func inv (lado) {
+    ifs {
+        (!INV)         => lado
+        (lado == :esq) => :dir
+        (lado == :dir) => :esq
+    }
+}
 
 ;; idle game state (all zero until Phase 2/3)
 val JOGO = [
@@ -109,7 +120,7 @@ task Cima (lado) {
     loop on :draw {
         pico.output.draw.image(CONF.logo@lado, rs.logo)
         pico.set.pencil [ color=:blue ]
-        pico.output.draw.text(NOMES@lado, rs.nome)
+        pico.output.draw.text(NOMES@(inv(lado)), rs.nome)
     }
 }
 
@@ -121,6 +132,7 @@ task Tempo () {
     val rs = [
         box  = pico.xin.rect(sec) <- ['%', x=0, y=0, w=1, h=1, anchor=:NW],
         pars = pico.xin.rect(sec) <- ['%', x=0.5, y=0, h=0.05, anchor=:N],
+        inv  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.10, h=0.05, anchor=:N],
         mmss = pico.xin.rect(sec) <- ['%', x=0.5, y=0.40, h=0.35],
         desc = pico.xin.rect(sec) <- ['%', x=0.5, y=0.85, h=0.10],
         ico  = pico.xin.rect(sec) <- ['%', x=0.30, y=0.85, h=0.05],
@@ -130,6 +142,9 @@ task Tempo () {
         pico.output.draw.rect(rs.box)
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text("(" ++ conf.pars() ++ ")", rs.pars)
+        if INV {
+            pico.output.draw.text("inv", rs.inv)
+        }
         pico.set.pencil [ color=:white ]
         pico.output.draw.text(mmss, rs.mmss)
         pico.set.pencil [ color=COLORS.gray ]
@@ -206,8 +221,8 @@ task Pontos () {
     val w2 = txt_w(sec, tostring(CONF.recorde), 0.10)
     val conta = "(" ++ (JOGO.pontos + JOGO.pontos) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
     val rs = [
-        box = pico.xin.rect(sec) <- ['%', x=0, y=0, w=1, h=1, anchor=:NW],
-        arb = pico.xin.rect(sec) <- ['%', x=0.5, y=0.05, h=0.05, anchor=:N],
+        box  = pico.xin.rect(sec) <- ['%', x=0, y=0, w=1, h=1, anchor=:NW],
+        arb  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.05, h=0.05, anchor=:N],
         api = pico.xin.rect(sec) <- [
             '%', x=0.5 - (w1 / 2) - 0.05, y=0.05, h=0.10
         ],
@@ -258,6 +273,14 @@ spawn Quedas()
 spawn Baixo(:esq)
 spawn Baixo(:dir)
 spawn Pontos()
+
+;; mode toggles (held 3s)
+spawn {
+    loop {
+        await Hold(:I)
+        set INV = !INV
+    }
+}
 
 ;; C-q (held 3s) quits
 await Hold(:Q)
