@@ -42,11 +42,13 @@ val SEC = [
 val NOMES = [esq="Atleta 1", dir="Atleta 2", arb=CONF.arbitro]
 
 ;; idle game state (all zero until Phase 2/3)
-val JOGO_QUEDAS   = 0
-val JOGO_TOTAL    = 0
-val JOGO_GOLPES   = 0
-val JOGO_PONTOS   = 0
-val JOGO_DESCANSO = CONF.descanso
+val JOGO = [
+    quedas   = 0,
+    total    = 0,
+    golpes   = 0,
+    pontos   = 0,
+    descanso = CONF.descanso,
+]
 
 ;; global (`set`, not `val`): funcs inside the constructor call siblings
 ;; via `conf.*`, which resolves globally only after the assignment
@@ -77,7 +79,7 @@ set conf = [
 ]
 
 func jogo_quedas_pct () {
-    math.max(0, JOGO_QUEDAS - conf.quedas.base()) * conf.quedas.pena()
+    math.max(0, JOGO.quedas - conf.quedas.base()) * conf.quedas.pena()
 }
 
 ;; text width in section-local '%' for a section-local height
@@ -120,7 +122,7 @@ task Tempo () {
         pico.set.pencil [ color=:white ]
         pico.output.draw.text(mmss, rs.mmss)
         pico.set.pencil [ color=GRAY ]
-        pico.output.draw.text(JOGO_DESCANSO ++ " s", rs.desc)
+        pico.output.draw.text(JOGO.descanso ++ " s", rs.desc)
         pico.output.draw.image("data/icos/timeout.png", rs.ico)
     }
 }
@@ -151,7 +153,7 @@ task Quedas () {
         pico.set.pencil [ color=:red, style=:fill ]
         pico.output.draw.oval(rs.oval)
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(tostring(JOGO_QUEDAS), rs.num)
+        pico.output.draw.text(tostring(JOGO.quedas), rs.num)
     }
 }
 
@@ -162,7 +164,7 @@ task Baixo (lado) {
     val atas = conf.ataques()
     val ix = (if lado == :esq => 0.25 => 0.75)
     val nx = (if lado == :esq => 0.55 => 0.45)
-    val w1 = txt_w(sec, tostring(JOGO_GOLPES), 0.05)
+    val w1 = txt_w(sec, tostring(JOGO.golpes), 0.05)
     val rs = [
         raq  = pico.xin.rect(sec, ['%', x=ix, y=0.30, h=0.15]),
         flag = pico.xin.rect(sec, ['%', x=ix, y=0.75, h=0.10]),
@@ -173,12 +175,12 @@ task Baixo (lado) {
     loop on :draw {
         pico.output.draw.image("data/icos/raquete.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
-        pico.set.pencil [ color=(if (atas > 0) && (JOGO_GOLPES >= atas) => :red => :black) ]
-        pico.output.draw.text(tostring(JOGO_GOLPES), rs.glp)
+        pico.set.pencil [ color=(if (atas > 0) && (JOGO.golpes >= atas) => :red => :black) ]
+        pico.output.draw.text(tostring(JOGO.golpes), rs.glp)
         pico.set.pencil [ color=GRAY ]
         pico.output.draw.text("/" ++ atas, rs.lim)
         pico.set.pencil [ color=:black ]
-        pico.output.draw.text(tostring(JOGO_PONTOS), rs.pts)
+        pico.output.draw.text(tostring(JOGO.pontos), rs.pts)
     }
 }
 
@@ -187,7 +189,7 @@ task Pontos () {
     val sec = SEC.pontos
     val w1 = txt_w(sec, NOMES.arb, 0.05)
     val w2 = txt_w(sec, tostring(CONF.recorde), 0.10)
-    val conta = "(" ++ (JOGO_PONTOS + JOGO_PONTOS) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
+    val conta = "(" ++ (JOGO.pontos + JOGO.pontos) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
     val rs = [
         box = pico.xin.rect(sec, ['%', x=0, y=0, w=1, h=1, anchor=:NW]),
         arb = pico.xin.rect(sec, ['%', x=0.5, y=0.05, h=0.05, anchor=:N]),
@@ -202,10 +204,10 @@ task Pontos () {
         pico.output.draw.rect(rs.box)
         pico.set.pencil [ color=GRAY ]
         pico.output.draw.text(NOMES.arb, rs.arb)
-        pico.set.pencil [ color=(if JOGO_TOTAL >= CONF.recorde => GRAY => ROSE) ]
+        pico.set.pencil [ color=(if JOGO.total >= CONF.recorde => GRAY => ROSE) ]
         pico.output.draw.text(tostring(CONF.recorde), rs.rec)
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(tostring(JOGO_TOTAL), rs.tot)
+        pico.output.draw.text(tostring(JOGO.total), rs.tot)
         pico.set.pencil [ color=GRAY ]
         pico.output.draw.text(conta, rs.cta)
         pico.output.draw.image("data/icos/apito.png", rs.api)
