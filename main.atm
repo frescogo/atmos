@@ -105,6 +105,7 @@ task Hold (key) {
         await :key.dn [key=key, ctrl=true]
         watching :key.up {
             await 3s
+            pico.output.sound("data/snds/peteleco.wav")
             break()
         }
     }
