@@ -39,10 +39,11 @@ val SEC = [
     ],
 ]
 
-;; names: esq, dir, arbitro (v4.3 has no prefixo)
-val NOME_ESQ = "Atleta 1"
-val NOME_DIR = "Atleta 2"
-val NOME_ARB = CONF.arbitro
+;; names and logos per side; arbitro apart (v4.3 has no prefixo)
+val NOME   = [esq="Atleta 1", dir="Atleta 2"]
+val IMAGEM = [esq=CONF.imagem1, dir=CONF.imagem2]
+val NOME_ARB   = CONF.arbitro
+val LADO_RADAR = (if CONF.lado_radar == 1 => :esq => :dir)
 
 ;; idle game state (all zero until Phase 2/3)
 val JOGO_QUEDAS   = 0
@@ -81,20 +82,22 @@ func txt_w (sec, s, h) {
 }
 
 ;; TYPE 1 (cima.esq/dir): logo + atleta name
-task Cima (sec, logo, nome) {
+task Cima (lado) {
+    val sec = SEC.cima@lado
     val rs = [
         logo = pico.xin.rect(sec, ['%', x=0.5, y=0.35, h=0.35]),
         nome = pico.xin.rect(sec, ['%', x=0.5, y=0.70, h=0.25])
     ]
     loop on :draw {
-        pico.output.draw.image(logo, rs.logo)
+        pico.output.draw.image(IMAGEM@lado, rs.logo)
         pico.set.pencil [ color=:blue ]
-        pico.output.draw.text(nome, rs.nome)
+        pico.output.draw.text(NOME@lado, rs.nome)
     }
 }
 
 ;; TYPE 2 (tempo): clock box: pars line, mm:ss, descanso line
-task Tempo (sec) {
+task Tempo () {
+    val sec = SEC.tempo
     val show = conf_tempo()
     val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
     val rs = [
@@ -118,19 +121,21 @@ task Tempo (sec) {
 }
 
 ;; TYPE 3 (meio.esq/dir): radar ok/no icon now; last golpe km/h in Phase 3
-task Meio (sec, lado) {
+task Meio (lado) {
+    val sec = SEC.meio@lado
     val rs = [
-        ico = pico.xin.rect(sec, ['%', x=(if lado == 1 => 0.05 => 0.95), y=0.5, h=0.20])
+        ico = pico.xin.rect(sec, ['%', x=(if lado == :esq => 0.05 => 0.95), y=0.5, h=0.20])
     ]
     loop on :draw {
-        if conf_radar() && (CONF.lado_radar == lado) {
+        if conf_radar() && (LADO_RADAR == lado) {
             pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
         }
     }
 }
 
 ;; TYPE 4 (quedas): quedas red circle with white counter
-task Quedas (sec) {
+task Quedas () {
+    val sec = SEC.quedas
     val h = 0.75
     val w = ((h * sec.h) * WIN.h) / (sec.w * WIN.w)
     val rs = [
@@ -146,11 +151,12 @@ task Quedas (sec) {
 }
 
 ;; TYPE 5 (baixo.esq/dir): side panel: raquete, golpes/limite, flag, pontos;
-;; positions mirror horizontally between esq (lado=1) and dir (lado=2)
-task Baixo (sec, lado) {
+;; positions mirror horizontally between :esq and :dir
+task Baixo (lado) {
+    val sec = SEC.baixo@lado
     val atas = conf_ataques()
-    val ix = (if lado == 1 => 0.25 => 0.75)
-    val nx = (if lado == 1 => 0.55 => 0.45)
+    val ix = (if lado == :esq => 0.25 => 0.75)
+    val nx = (if lado == :esq => 0.55 => 0.45)
     val w1 = txt_w(sec, tostring(JOGO_GOLPES), 0.05)
     val rs = [
         raq  = pico.xin.rect(sec, ['%', x=ix, y=0.30, h=0.15]),
@@ -172,7 +178,8 @@ task Baixo (sec, lado) {
 }
 
 ;; TYPE 6 (pontos): bottom box: juiz, recorde + trophy, TOTAL, conta line
-task Pontos (sec) {
+task Pontos () {
+    val sec = SEC.pontos
     val w1 = txt_w(sec, NOME_ARB, 0.05)
     val w2 = txt_w(sec, tostring(CONF.recorde), 0.10)
     val conta = "(" ++ (JOGO_PONTOS + JOGO_PONTOS) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
@@ -216,15 +223,15 @@ spawn {
 }
 
 ;; 9 instances, background to foreground
-spawn Cima(SEC.cima.esq, CONF.imagem1, NOME_ESQ)
-spawn Cima(SEC.cima.dir, CONF.imagem2, NOME_DIR)
-spawn Tempo(SEC.tempo)
-spawn Meio(SEC.meio.esq, 1)
-spawn Meio(SEC.meio.dir, 2)
-spawn Quedas(SEC.quedas)
-spawn Baixo(SEC.baixo.esq, 1)
-spawn Baixo(SEC.baixo.dir, 2)
-spawn Pontos(SEC.pontos)
+spawn Cima(:esq)
+spawn Cima(:dir)
+spawn Tempo()
+spawn Meio(:esq)
+spawn Meio(:dir)
+spawn Quedas()
+spawn Baixo(:esq)
+spawn Baixo(:dir)
+spawn Pontos()
 
 ;; Phase 1 has no key bindings yet: wait for the window to close
 await(:quit)
