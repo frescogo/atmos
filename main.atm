@@ -3,6 +3,7 @@ val VERSAO = "4.3.0"
 require "atmos.env.pico"
 val pico = require "pico"
 val CONF = require "conf"
+pico.set.aids(false)
 
 val G = [
     inv    = false,     ;; screen inverted
@@ -343,11 +344,11 @@ spawn Partida()
 spawn {
     loop {
         par:any {
-            await Hold(:I)
+            await Hold :I
             set G.inv = !G.inv
         } with {
-            await Hold(:A)
-            await Digita(:arb)
+            await Hold :0
+            await Digita :arb
         }
     }
 }
