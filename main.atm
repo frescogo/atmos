@@ -88,6 +88,17 @@ func txt_w (sec, s, h) {
     d.w / sec.w
 }
 
+;; awaits ctrl+key held for 3s (v4.3 KEY_TIMER); early release restarts
+task Hold (key) {
+    loop {
+        await :key.dn [key=key]
+        watching :key.up [key=key] {
+            await 3s
+            break()
+        }
+    }
+}
+
 ;; TYPE 1 (cima.esq/dir): logo + atleta name
 task Cima (lado) {
     val sec = SEC.cima@lado
@@ -248,5 +259,5 @@ spawn Baixo(:esq)
 spawn Baixo(:dir)
 spawn Pontos()
 
-;; Phase 1 has no key bindings yet: wait for the window to close
-await(:quit)
+;; C-q (held 3s) quits
+await Hold(:Q)
