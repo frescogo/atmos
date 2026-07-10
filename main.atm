@@ -73,7 +73,7 @@ func txt_w (sec, s, h) {
 }
 
 ;; TYPE 1 (tl, tr): logo + atleta name
-task Atleta (sec, logo, nome) {
+task Cima (sec, logo, nome) {
     val rs = [
         logo = pico.xin.rect(sec, ['%', x=0.5, y=0.35, h=0.35]),
         nome = pico.xin.rect(sec, ['%', x=0.5, y=0.70, h=0.25])
@@ -86,7 +86,7 @@ task Atleta (sec, logo, nome) {
 }
 
 ;; TYPE 2 (tc): clock box: pars line, mm:ss, descanso line
-task Clock (sec) {
+task Tempo (sec) {
     val show = conf_tempo()
     val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
     val rs = [
@@ -139,7 +139,7 @@ task Quedas (sec) {
 
 ;; TYPE 5 (bl, br): side panel: raquete, golpes/limite, flag, pontos;
 ;; positions mirror horizontally between esq (lado=1) and dir (lado=2)
-task Painel (sec, lado) {
+task Baixo (sec, lado) {
     val atas = conf_ataques()
     val ix = (if lado == 1 => 0.25 => 0.75)
     val nx = (if lado == 1 => 0.55 => 0.45)
@@ -208,14 +208,14 @@ spawn {
 }
 
 ;; 9 instances, background to foreground
-spawn Atleta(SEC.tl, CONF.imagem1, NOME_ESQ)
-spawn Atleta(SEC.tr, CONF.imagem2, NOME_DIR)
-spawn Clock(SEC.tc)
+spawn Cima(SEC.tl, CONF.imagem1, NOME_ESQ)
+spawn Cima(SEC.tr, CONF.imagem2, NOME_DIR)
+spawn Tempo(SEC.tc)
 spawn Meio(SEC.ml, 1)
 spawn Meio(SEC.mr, 2)
 spawn Quedas(SEC.mc)
-spawn Painel(SEC.bl, 1)
-spawn Painel(SEC.br, 2)
+spawn Baixo(SEC.bl, 1)
+spawn Baixo(SEC.br, 2)
 spawn Pontos(SEC.bc)
 
 ;; Phase 1 has no key bindings yet: wait for the window to close
