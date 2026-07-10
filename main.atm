@@ -1,8 +1,8 @@
 ;; FrescoGO! scoreboard ported from Processing (placar.pde) to pico-atmos.
 ;; Phase 1: static idle screen ("ocioso" state, empty game, all counters 0).
 ;; Layout: screen split in 3x3 sections, 6 task types with 9 instances;
-;; each instance spawns Image/Text/Box children with rects already resolved
-;; via pico.xin from section-local '%' coords.
+;; each instance resolves its rects once via pico.xin from section-local
+;; '%' coords, then draws them inline in a single `loop on :draw`.
 
 require "atmos.env.pico"
 val pico = require "pico"
@@ -77,55 +77,46 @@ func txt_w (sec, s, h) {
     d.w / sec.w
 }
 
-;; leaf drawers: draw every frame; rects come already resolved with xin
-task Image (path, rect) {
-    loop on :draw {
-        pico.output.draw.image(path, rect)
-    }
-}
-task Text (s, clr, rect) {
-    loop on :draw {
-        pico.set.pencil [ color=clr ]
-        pico.output.draw.text(s, rect)
-    }
-}
-task Box (clr, rect) {
-    loop on :draw {
-        pico.set.pencil [ color=clr, style='fill' ]
-        pico.output.draw.rect(rect)
-    }
-}
-task Oval (clr, rect) {
-    loop on :draw {
-        pico.set.pencil [ color=clr, style='fill' ]
-        pico.output.draw.oval(rect)
-    }
-}
-
 ;; TYPE 1 (tl, tr): logo + atleta name
 task Atleta (sec, logo, nome) {
-    spawn Image(logo, pico.xin.rect(sec, ['%', x=0.5, y=0.33, h=0.33]))
-    spawn Text(nome, 'blue', pico.xin.rect(sec, ['%', x=0.5, y=0.72, h=0.24, anchor='C']))
-    await(:quit)
+    val r_logo = pico.xin.rect(sec, ['%', x=0.5, y=0.33, h=0.33])
+    val r_nome = pico.xin.rect(sec, ['%', x=0.5, y=0.72, h=0.24, anchor='C'])
+    loop on :draw {
+        pico.output.draw.image(logo, r_logo)
+        pico.set.pencil [ color='blue' ]
+        pico.output.draw.text(nome, r_nome)
+    }
 }
 
 ;; TYPE 2 (tc): clock box: pars line, mm:ss, descanso line
 task Clock (sec) {
     val show = conf_tempo()
     val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
-    spawn Box('black', pico.xin.rect(sec, ['%', x=0, y=0, w=1, h=1, anchor='NW']))
-    spawn Text("(" ++ conf_pars() ++ ")", GRAY, pico.xin.rect(sec, ['%', x=0.5, y=0, h=0.05, anchor='N']))
-    spawn Text(mmss, 'white', pico.xin.rect(sec, ['%', x=0.5, y=0.39, h=0.37, anchor='C']))
-    spawn Text(JOGO_DESCANSO ++ " s", GRAY, pico.xin.rect(sec, ['%', x=0.5, y=0.83, h=0.09, anchor='C']))
-    spawn Image("data/icos/timeout-03.png", pico.xin.rect(sec, ['%', x=0.32, y=0.83, h=0.07]))
-    await(:quit)
+    val r_box  = pico.xin.rect(sec, ['%', x=0, y=0, w=1, h=1, anchor='NW'])
+    val r_pars = pico.xin.rect(sec, ['%', x=0.5, y=0, h=0.05, anchor='N'])
+    val r_mmss = pico.xin.rect(sec, ['%', x=0.5, y=0.39, h=0.37, anchor='C'])
+    val r_desc = pico.xin.rect(sec, ['%', x=0.5, y=0.83, h=0.09, anchor='C'])
+    val r_ico  = pico.xin.rect(sec, ['%', x=0.32, y=0.83, h=0.07])
+    loop on :draw {
+        pico.set.pencil [ color='black', style='fill' ]
+        pico.output.draw.rect(r_box)
+        pico.set.pencil [ color=GRAY ]
+        pico.output.draw.text("(" ++ conf_pars() ++ ")", r_pars)
+        pico.set.pencil [ color='white' ]
+        pico.output.draw.text(mmss, r_mmss)
+        pico.set.pencil [ color=GRAY ]
+        pico.output.draw.text(JOGO_DESCANSO ++ " s", r_desc)
+        pico.output.draw.image("data/icos/timeout-03.png", r_ico)
+    }
 }
 
 ;; TYPE 3 (ml, mr): radar icon now; last golpe km/h in Phase 3
 task Meio (sec, lado) {
-    if conf_radar() && (CONF.lado_radar == lado) {
-        spawn Image("data/icos/radar_ok.png", pico.xin.rect(sec, ['%', x=(if lado == 1 => 0.06 => 0.94), y=0.5, h=0.2]))
-        await(:quit)
+    val r_ico = pico.xin.rect(sec, ['%', x=(if lado == 1 => 0.06 => 0.94), y=0.5, h=0.2])
+    loop on :draw {
+        if conf_radar() && (CONF.lado_radar == lado) {
+            pico.output.draw.image("data/icos/radar_ok.png", r_ico)
+        }
     }
 }
 
@@ -133,59 +124,95 @@ task Meio (sec, lado) {
 task Quedas (sec) {
     val h = 0.75
     val w = ((h * sec.h) * WIN.h) / (sec.w * WIN.w)
-    spawn Oval('red', pico.xin.rect(sec, ['%', x=0.5, y=0.5, w=w, h=h, anchor='C']))
-    spawn Text(tostring(JOGO_QUEDAS), 'white', pico.xin.rect(sec, ['%', x=0.5, y=0.44, h=0.44, anchor='C']))
-    await(:quit)
+    val r_oval = pico.xin.rect(sec, ['%', x=0.5, y=0.5, w=w, h=h, anchor='C'])
+    val r_num  = pico.xin.rect(sec, ['%', x=0.5, y=0.44, h=0.44, anchor='C'])
+    loop on :draw {
+        pico.set.pencil [ color='red', style='fill' ]
+        pico.output.draw.oval(r_oval)
+        pico.set.pencil [ color='white' ]
+        pico.output.draw.text(tostring(JOGO_QUEDAS), r_num)
+    }
 }
 
 ;; TYPE 5 (bl, br): side panel: raquete, golpes/limite, maximas, flag, pontos
 task Painel (sec) {
-    spawn Image("data/icos/raq-03.png", pico.xin.rect(sec, ['%', x=0.125, y=0.30, h=0.13]))
-    spawn Image("data/icos/flag.png", pico.xin.rect(sec, ['%', x=0.125, y=0.74, h=0.11]))
     val glps = conf_golpes()
     val atas = conf_maximas()
-    spawn Text(tostring(JOGO_GOLPES), (if (glps > 0) && (JOGO_GOLPES >= glps) => GREEN => 'black'), pico.xin.rect(sec, ['%', x=0.5, y=0.29, h=0.17, anchor='C']))
+    val mn = math.min(atas, JOGO_NRMS)
+    val mb = math.min(atas, JOGO_BAKS)
     val w1 = txt_w(sec, tostring(JOGO_GOLPES), 0.05)
-    spawn Text("/" ++ glps, GRAY, pico.xin.rect(sec, ['%', x=0.5 + w1 + 0.03, y=0.37, h=0.05, anchor='NW']))
-    pin extra = tasks()
-    if CONF.continuos != 0 {
-        spawn @extra Text("+" ++ JOGO_INSS, GRAY, pico.xin.rect(sec, ['%', x=0.5 + w1 + 0.04, y=0.29, h=0.05, anchor='NW']))
+    val wn = txt_w(sec, tostring(mn), 0.04)
+    val wb = txt_w(sec, tostring(mb), 0.04)
+    val r_raq  = pico.xin.rect(sec, ['%', x=0.125, y=0.30, h=0.13])
+    val r_flag = pico.xin.rect(sec, ['%', x=0.125, y=0.74, h=0.11])
+    val r_glp  = pico.xin.rect(sec, ['%', x=0.5, y=0.29, h=0.17, anchor='C'])
+    val r_lim  = pico.xin.rect(sec, ['%', x=0.5 + w1 + 0.03, y=0.37, h=0.05, anchor='NW'])
+    val r_ins  = pico.xin.rect(sec, ['%', x=0.5 + w1 + 0.04, y=0.29, h=0.05, anchor='NW'])
+    val r_nrm  = pico.xin.rect(sec, ['%', x=0.875, y=0.21, h=0.11, anchor='C'])
+    val r_nrml = pico.xin.rect(sec, ['%', x=0.875 + wn + 0.03, y=0.26, h=0.04, anchor='NW'])
+    val r_bak  = pico.xin.rect(sec, ['%', x=0.875, y=0.38, h=0.11, anchor='C'])
+    val r_bakl = pico.xin.rect(sec, ['%', x=0.875 + wb + 0.03, y=0.43, h=0.04, anchor='NW'])
+    val r_pts  = pico.xin.rect(sec, ['%', x=0.5, y=0.71, h=0.17, anchor='C'])
+    loop on :draw {
+        pico.output.draw.image("data/icos/raq-03.png", r_raq)
+        pico.output.draw.image("data/icos/flag.png", r_flag)
+        pico.set.pencil [ color=(if (glps > 0) && (JOGO_GOLPES >= glps) => GREEN => 'black') ]
+        pico.output.draw.text(tostring(JOGO_GOLPES), r_glp)
+        pico.set.pencil [ color=GRAY ]
+        pico.output.draw.text("/" ++ glps, r_lim)
+        if CONF.continuos != 0 {
+            pico.output.draw.text("+" ++ JOGO_INSS, r_ins)
+        }
+        if CONF.potentes != 0 {
+            pico.set.pencil [ color=(if JOGO_NRMS >= atas => GREEN => 'black') ]
+            pico.output.draw.text(tostring(mn), r_nrm)
+            pico.set.pencil [ color=GRAY ]
+            pico.output.draw.text("/" ++ atas, r_nrml)
+            pico.set.pencil [ color=(if JOGO_BAKS >= atas => GREEN => 'black') ]
+            pico.output.draw.text(tostring(mb), r_bak)
+            pico.set.pencil [ color=GRAY ]
+            pico.output.draw.text("/" ++ atas, r_bakl)
+        }
+        pico.set.pencil [ color='black' ]
+        pico.output.draw.text(tostring(JOGO_PONTOS), r_pts)
     }
-    if CONF.potentes != 0 {
-        val mn = math.min(atas, JOGO_NRMS)
-        val mb = math.min(atas, JOGO_BAKS)
-        val wn = txt_w(sec, tostring(mn), 0.04)
-        val wb = txt_w(sec, tostring(mb), 0.04)
-        spawn @extra Text(tostring(mn), (if JOGO_NRMS >= atas => GREEN => 'black'), pico.xin.rect(sec, ['%', x=0.875, y=0.21, h=0.11, anchor='C']))
-        spawn @extra Text("/" ++ atas, GRAY, pico.xin.rect(sec, ['%', x=0.875 + wn + 0.03, y=0.26, h=0.04, anchor='NW']))
-        spawn @extra Text(tostring(mb), (if JOGO_BAKS >= atas => GREEN => 'black'), pico.xin.rect(sec, ['%', x=0.875, y=0.38, h=0.11, anchor='C']))
-        spawn @extra Text("/" ++ atas, GRAY, pico.xin.rect(sec, ['%', x=0.875 + wb + 0.03, y=0.43, h=0.04, anchor='NW']))
-    }
-    spawn Text(tostring(JOGO_PONTOS), 'black', pico.xin.rect(sec, ['%', x=0.5, y=0.71, h=0.17, anchor='C']))
-    await(:quit)
 }
 
 ;; TYPE 6 (bc): bottom box: juiz, prefixo, recorde + trophy, TOTAL
 task Pontos (sec) {
     val w1 = txt_w(sec, NOME_ARB, 0.05)
     val w2 = txt_w(sec, tostring(CONF.recorde), 0.09)
-    spawn Box('black', pico.xin.rect(sec, ['%', x=0, y=0, w=1, h=1, anchor='NW']))
-    spawn Text(NOME_ARB, GRAY, pico.xin.rect(sec, ['%', x=0.25, y=0.03, h=0.05, anchor='N']))
-    spawn Text(NOME_PRE, GRAY, pico.xin.rect(sec, ['%', x=0.75, y=0.03, h=0.05, anchor='N']))
-    spawn Text(tostring(CONF.recorde), (if JOGO_TOTAL >= CONF.recorde => GRAY => ROSE), pico.xin.rect(sec, ['%', x=0.5, y=0.88, h=0.09, anchor='C']))
-    spawn Text(tostring(JOGO_TOTAL), 'white', pico.xin.rect(sec, ['%', x=0.5, y=0.42, h=0.37, anchor='C']))
-    spawn Image("data/icos/apito-04.png", pico.xin.rect(sec, ['%', x=0.25 - (w1 / 2) - 0.05, y=0.05, h=0.08]))
-    spawn Image("data/icos/trophy-02.png", pico.xin.rect(sec, ['%', x=0.5 - (w2 / 2) - 0.09, y=0.89, h=0.08]))
-    await(:quit)
+    val r_box = pico.xin.rect(sec, ['%', x=0, y=0, w=1, h=1, anchor='NW'])
+    val r_arb = pico.xin.rect(sec, ['%', x=0.25, y=0.03, h=0.05, anchor='N'])
+    val r_pre = pico.xin.rect(sec, ['%', x=0.75, y=0.03, h=0.05, anchor='N'])
+    val r_rec = pico.xin.rect(sec, ['%', x=0.5, y=0.88, h=0.09, anchor='C'])
+    val r_tot = pico.xin.rect(sec, ['%', x=0.5, y=0.42, h=0.37, anchor='C'])
+    val r_api = pico.xin.rect(sec, ['%', x=0.25 - (w1 / 2) - 0.05, y=0.05, h=0.08])
+    val r_tro = pico.xin.rect(sec, ['%', x=0.5 - (w2 / 2) - 0.09, y=0.89, h=0.08])
+    loop on :draw {
+        pico.set.pencil [ color='black', style='fill' ]
+        pico.output.draw.rect(r_box)
+        pico.set.pencil [ color=GRAY ]
+        pico.output.draw.text(NOME_ARB, r_arb)
+        pico.output.draw.text(NOME_PRE, r_pre)
+        pico.set.pencil [ color=(if JOGO_TOTAL >= CONF.recorde => GRAY => ROSE) ]
+        pico.output.draw.text(tostring(CONF.recorde), r_rec)
+        pico.set.pencil [ color='white' ]
+        pico.output.draw.text(tostring(JOGO_TOTAL), r_tot)
+        pico.output.draw.image("data/icos/apito-04.png", r_api)
+        pico.output.draw.image("data/icos/trophy-02.png", r_tro)
+    }
 }
 
-;; BACKGROUND: white clear first, then middle band border (screen coords)
-spawn Box('white', ['%', x=0, y=0, w=1, h=1, anchor='NW'])
+;; BACKGROUND: white clear + middle band border (screen coords, not a section)
 spawn {
-    val band = ['%', x=0, y=3/8, w=1, h=2/8, anchor='NW']
+    val r_all  = ['%', x=0, y=0,   w=1, h=1,   anchor='NW']
+    val r_band = ['%', x=0, y=3/8, w=1, h=2/8, anchor='NW']
     loop on :draw {
+        pico.set.pencil [ color='white', style='fill' ]
+        pico.output.draw.rect(r_all)
         pico.set.pencil [ color='black', style='stroke' ]
-        pico.output.draw.rect(band)
+        pico.output.draw.rect(r_band)
     }
 }
 
