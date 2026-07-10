@@ -20,15 +20,23 @@ pico.set.pencil [ font="data/LiberationSans-Bold.ttf" ]
 
 ;; 3x3 sections: cols 4/11 + 3/11 + 4/11, rows 3/8 + 2/8 + 3/8
 val SEC = [
-    tl = ['%', x=0,    y=0,   w=4/11, h=3/8, anchor=:NW],
-    tc = ['%', x=4/11, y=0,   w=3/11, h=3/8, anchor=:NW],
-    tr = ['%', x=7/11, y=0,   w=4/11, h=3/8, anchor=:NW],
-    ml = ['%', x=0,    y=3/8, w=4/11, h=2/8, anchor=:NW],
-    mc = ['%', x=4/11, y=3/8, w=3/11, h=2/8, anchor=:NW],
-    mr = ['%', x=7/11, y=3/8, w=4/11, h=2/8, anchor=:NW],
-    bl = ['%', x=0,    y=5/8, w=4/11, h=3/8, anchor=:NW],
-    bc = ['%', x=4/11, y=5/8, w=3/11, h=3/8, anchor=:NW],
-    br = ['%', x=7/11, y=5/8, w=4/11, h=3/8, anchor=:NW]
+    tempo  = ['%', x=4/11, y=0,   w=3/11, h=3/8, anchor=:NW],
+    cima = [
+        esq = ['%', x=0,    y=0,   w=4/11, h=3/8, anchor=:NW],
+        dir = ['%', x=7/11, y=0,   w=4/11, h=3/8, anchor=:NW],
+    ],
+
+    quedas = ['%', x=4/11, y=3/8, w=3/11, h=2/8, anchor=:NW],
+    meio = [
+        esq = ['%', x=0,    y=3/8, w=4/11, h=2/8, anchor=:NW],
+        dir = ['%', x=7/11, y=3/8, w=4/11, h=2/8, anchor=:NW],
+    ],
+
+    pontos = ['%', x=4/11, y=5/8, w=3/11, h=3/8, anchor=:NW],
+    baixo = [
+        esq = ['%', x=0,    y=5/8, w=4/11, h=3/8, anchor=:NW],
+        dir = ['%', x=7/11, y=5/8, w=4/11, h=3/8, anchor=:NW],
+    ],
 ]
 
 ;; names: esq, dir, arbitro (v4.3 has no prefixo)
@@ -72,7 +80,7 @@ func txt_w (sec, s, h) {
     d.w / sec.w
 }
 
-;; TYPE 1 (tl, tr): logo + atleta name
+;; TYPE 1 (cima.esq/dir): logo + atleta name
 task Cima (sec, logo, nome) {
     val rs = [
         logo = pico.xin.rect(sec, ['%', x=0.5, y=0.35, h=0.35]),
@@ -85,7 +93,7 @@ task Cima (sec, logo, nome) {
     }
 }
 
-;; TYPE 2 (tc): clock box: pars line, mm:ss, descanso line
+;; TYPE 2 (tempo): clock box: pars line, mm:ss, descanso line
 task Tempo (sec) {
     val show = conf_tempo()
     val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
@@ -109,7 +117,7 @@ task Tempo (sec) {
     }
 }
 
-;; TYPE 3 (ml, mr): radar ok/no icon now; last golpe km/h in Phase 3
+;; TYPE 3 (meio.esq/dir): radar ok/no icon now; last golpe km/h in Phase 3
 task Meio (sec, lado) {
     val rs = [
         ico = pico.xin.rect(sec, ['%', x=(if lado == 1 => 0.05 => 0.95), y=0.5, h=0.20])
@@ -121,7 +129,7 @@ task Meio (sec, lado) {
     }
 }
 
-;; TYPE 4 (mc): quedas red circle with white counter
+;; TYPE 4 (quedas): quedas red circle with white counter
 task Quedas (sec) {
     val h = 0.75
     val w = ((h * sec.h) * WIN.h) / (sec.w * WIN.w)
@@ -137,7 +145,7 @@ task Quedas (sec) {
     }
 }
 
-;; TYPE 5 (bl, br): side panel: raquete, golpes/limite, flag, pontos;
+;; TYPE 5 (baixo.esq/dir): side panel: raquete, golpes/limite, flag, pontos;
 ;; positions mirror horizontally between esq (lado=1) and dir (lado=2)
 task Baixo (sec, lado) {
     val atas = conf_ataques()
@@ -163,7 +171,7 @@ task Baixo (sec, lado) {
     }
 }
 
-;; TYPE 6 (bc): bottom box: juiz, recorde + trophy, TOTAL, conta line
+;; TYPE 6 (pontos): bottom box: juiz, recorde + trophy, TOTAL, conta line
 task Pontos (sec) {
     val w1 = txt_w(sec, NOME_ARB, 0.05)
     val w2 = txt_w(sec, tostring(CONF.recorde), 0.10)
@@ -208,15 +216,15 @@ spawn {
 }
 
 ;; 9 instances, background to foreground
-spawn Cima(SEC.tl, CONF.imagem1, NOME_ESQ)
-spawn Cima(SEC.tr, CONF.imagem2, NOME_DIR)
-spawn Tempo(SEC.tc)
-spawn Meio(SEC.ml, 1)
-spawn Meio(SEC.mr, 2)
-spawn Quedas(SEC.mc)
-spawn Baixo(SEC.bl, 1)
-spawn Baixo(SEC.br, 2)
-spawn Pontos(SEC.bc)
+spawn Cima(SEC.cima.esq, CONF.imagem1, NOME_ESQ)
+spawn Cima(SEC.cima.dir, CONF.imagem2, NOME_DIR)
+spawn Tempo(SEC.tempo)
+spawn Meio(SEC.meio.esq, 1)
+spawn Meio(SEC.meio.dir, 2)
+spawn Quedas(SEC.quedas)
+spawn Baixo(SEC.baixo.esq, 1)
+spawn Baixo(SEC.baixo.dir, 2)
+spawn Pontos(SEC.pontos)
 
 ;; Phase 1 has no key bindings yet: wait for the window to close
 await(:quit)
