@@ -106,18 +106,20 @@ func txt_w (sec, s, h) {
 task Hold (key) {
     loop {
         await :key.dn [key=key, ctrl=true]
-        watching :key.up {
-            await 1s
-            pico.output.sound("data/snds/peteleco.wav")
-            break()
-        }
+        val e = await (:key.up || 1s)
+        while (e ?? :key.up)
     }
+    pico.output.sound("data/snds/peteleco.wav")
+    await :key.up [ctrl=false]
 }
 
 ;; name typing: letters (+shift, '_') until Return; Backspace erases;
 ;; Escape cancels and restores the original name
 task Digita (alvo) {
     set G.edit = alvo
+    defer {
+        set G.edit = nil
+    }
     val old = NOMES@alvo
     set NOMES@alvo = "_"
     watching :key.dn [key=:Return] {
@@ -130,6 +132,7 @@ task Digita (alvo) {
                     (string.len(e.key) == 1) => cur ++ (
                             if e.shift => e.key => string.lower(e.key)
                     )
+                    else => cur
                 }
                 set NOMES@alvo = cur ++ '_'
             }
@@ -137,7 +140,6 @@ task Digita (alvo) {
         set NOMES@alvo = old ++ '_'
     }
     set NOMES@alvo = string.sub(NOMES@alvo, 1, -2)
-    set G.edit = nil
 }
 
 ;; TYPE 1 (cima.esq/dir): logo + atleta name
@@ -310,11 +312,9 @@ spawn {
             set G.inv = !G.inv
         } with {
             await Hold(:A)
-            await 500ms
             await Digita(:arb)
         }
     }
 }
 
 await Hold(:Q)
-await 200ms     ;; wait sound
