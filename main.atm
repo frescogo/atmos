@@ -119,6 +119,7 @@ task Digita (alvo) {
     set G.edit = alvo
     defer {
         set G.edit = nil
+        set NOMES@alvo = string.sub(NOMES@alvo, 1, -2)
     }
     val old = NOMES@alvo
     set NOMES@alvo = "_"
@@ -130,7 +131,7 @@ task Digita (alvo) {
                     (e.key == :Backspace)    => string.sub(cur, 1, -2)
                     (e.key == :Space)        => cur ++ ' '
                     (string.len(e.key) == 1) => cur ++ (
-                            if e.shift => e.key => string.lower(e.key)
+                        if e.shift => e.key => string.lower(e.key)
                     )
                     else => cur
                 }
@@ -139,7 +140,6 @@ task Digita (alvo) {
         }
         set NOMES@alvo = old ++ '_'
     }
-    set NOMES@alvo = string.sub(NOMES@alvo, 1, -2)
 }
 
 ;; TYPE 1 (cima.esq/dir): logo + atleta name
