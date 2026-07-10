@@ -48,27 +48,36 @@ val JOGO_GOLPES   = 0
 val JOGO_PONTOS   = 0
 val JOGO_DESCANSO = CONF.descanso
 
-;; derived configuration (dupla only; trinca/esquenta variants in Phase 3)
-func conf_radar () {
-    false
-}
-func conf_tempo () {
-    CONF.tempo
-}
-func conf_ataques () {
-    math.max(1, math.floor(((conf_tempo() * CONF.ataques) / 60) / 2))
-}
-func conf_quedas_base () {
-    math.floor((CONF.tregua * conf_tempo()) / 60)
-}
-func conf_quedas_pena () {
-    math.floor((CONF.quedas * 60) / conf_tempo())
-}
+;; global (`set`, not `val`): funcs inside the constructor call siblings
+;; via `conf.*`, which resolves globally only after the assignment
+set conf = [
+    radar = func () {
+        false
+    },
+    tempo = func () {
+        CONF.tempo
+    },
+    ataques = func () {
+        math.max(1, math.floor(((conf.tempo() * CONF.ataques) / 60) / 2))
+    },
+    quedas = [
+        base = func () {
+            math.floor((CONF.tregua * conf.tempo()) / 60)
+        },
+        pena = func () {
+            math.floor((CONF.quedas * 60) / conf.tempo())
+        },
+    ],
+    pars = func () {
+        val tri_dup = if CONF.trinca => "trinca" => "dupla"
+        val rad_cm  = if conf.radar() => "radar" => (CONF.distancia ++ "cm")
+        val tempo   = conf.tempo() ++ "s"
+        "v" ++ VERSAO ++ " / " ++ tri_dup ++ " / " ++ rad_cm ++ " / " ++ tempo
+    },
+]
+
 func jogo_quedas_pct () {
-    math.max(0, JOGO_QUEDAS - conf_quedas_base()) * conf_quedas_pena()
-}
-func conf_pars () {
-    "v" ++ VERSAO ++ " / " ++ (if CONF.trinca => "trinca" => "dupla") ++ " / " ++ (if conf_radar() => "radar" => (CONF.distancia ++ "cm")) ++ " / " ++ conf_tempo() ++ "s"
+    math.max(0, JOGO_QUEDAS - conf.quedas.base()) * conf.quedas.pena()
 }
 
 ;; text width in section-local '%' for a section-local height
@@ -94,7 +103,7 @@ task Cima (lado) {
 ;; TYPE 2 (tempo): clock box: pars line, mm:ss, descanso line
 task Tempo () {
     val sec = SEC.tempo
-    val show = conf_tempo()
+    val show = conf.tempo()
     val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
     val rs = [
         box  = pico.xin.rect(sec, ['%', x=0, y=0, w=1, h=1, anchor=:NW]),
@@ -107,7 +116,7 @@ task Tempo () {
         pico.set.pencil [ color=:black, style=:fill ]
         pico.output.draw.rect(rs.box)
         pico.set.pencil [ color=GRAY ]
-        pico.output.draw.text("(" ++ conf_pars() ++ ")", rs.pars)
+        pico.output.draw.text("(" ++ conf.pars() ++ ")", rs.pars)
         pico.set.pencil [ color=:white ]
         pico.output.draw.text(mmss, rs.mmss)
         pico.set.pencil [ color=GRAY ]
@@ -123,7 +132,7 @@ task Meio (lado) {
         ico = pico.xin.rect(sec, ['%', x=(if lado == :esq => 0.05 => 0.95), y=0.5, h=0.20])
     ]
     loop on :draw {
-        if conf_radar() && (CONF.lado.radar == lado) {
+        if conf.radar() && (CONF.lado.radar == lado) {
             pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
         }
     }
@@ -150,7 +159,7 @@ task Quedas () {
 ;; positions mirror horizontally between :esq and :dir
 task Baixo (lado) {
     val sec = SEC.baixo@lado
-    val atas = conf_ataques()
+    val atas = conf.ataques()
     val ix = (if lado == :esq => 0.25 => 0.75)
     val nx = (if lado == :esq => 0.55 => 0.45)
     val w1 = txt_w(sec, tostring(JOGO_GOLPES), 0.05)
