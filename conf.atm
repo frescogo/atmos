@@ -19,8 +19,8 @@
     radar_igual = 700,
     radar_oposi = 300,
     recorde     = 0,
-    imagem1     = "data/fresco-radar.png",
-    imagem2     = "data/fresco-radar.png",
+    imagem1     = "data/frescogo.png",
+    imagem2     = "data/frescogo.png",
     ;; "Árbitro" crashes pico-sdl _tex_text: the 'Á' raster exceeds
     ;; the "|gjpqyA" reference cell assertion (src/mem.c:264)
     arbitro     = "Arbitro",

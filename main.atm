@@ -105,7 +105,7 @@ task Clock (sec) {
         pico.output.draw.text(mmss, rs.mmss)
         pico.set.pencil [ color=GRAY ]
         pico.output.draw.text(JOGO_DESCANSO ++ " s", rs.desc)
-        pico.output.draw.image("data/icos/timeout-03.png", rs.ico)
+        pico.output.draw.image("data/icos/timeout.png", rs.ico)
     }
 }
 
@@ -116,7 +116,7 @@ task Meio (sec, lado) {
     ]
     loop on :draw {
         if conf_radar() && (CONF.lado_radar == lado) {
-            pico.output.draw.image("data/icos/radar_ok.png", rs.ico)
+            pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
         }
     }
 }
@@ -152,7 +152,7 @@ task Painel (sec, lado) {
         pts  = pico.xin.rect(sec, ['%', x=nx, y=0.70, h=0.15])
     ]
     loop on :draw {
-        pico.output.draw.image("data/icos/raq-03.png", rs.raq)
+        pico.output.draw.image("data/icos/raquete.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
         pico.set.pencil [ color=(if (atas > 0) && (JOGO_GOLPES >= atas) => :red => :black) ]
         pico.output.draw.text(tostring(JOGO_GOLPES), rs.glp)
@@ -188,8 +188,8 @@ task Pontos (sec) {
         pico.output.draw.text(tostring(JOGO_TOTAL), rs.tot)
         pico.set.pencil [ color=GRAY ]
         pico.output.draw.text(conta, rs.cta)
-        pico.output.draw.image("data/icos/apito-04.png", rs.api)
-        pico.output.draw.image("data/icos/trophy-02.png", rs.tro)
+        pico.output.draw.image("data/icos/apito.png", rs.api)
+        pico.output.draw.image("data/icos/trophy.png", rs.tro)
     }
 }
 
