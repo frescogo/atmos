@@ -1,0 +1,31 @@
+;; PARTIDA: the ESTADO machine:
+;;   ocioso -> saque (C-Up) -> golpes (Left/Right) -> queda (C-Down) ->
+;;   ocioso; arrows are exempt from Hold (v4.3)
+
+task () {
+    loop {
+        set G.estado = :ocioso
+        await :key.dn [key=:Up, ctrl=true]
+        set G.estado = :sacando
+        pico.output.sound("data/snds/start.wav")
+        set JOGO.seqs@+ = []
+        watching :key.dn [key=:Down, ctrl=true] {
+            var e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
+            set G.estado = :jogando
+            loop {
+                val jog = match e.key {
+                    :Left  => inv(:esq)
+                    :Right => inv(:dir)
+                }
+                if jog {
+                    set JOGO.seqs@#@+ = [now=pico.get.now(), jog=jog]
+                    set JOGO.golpes@jog = JOGO.golpes@jog + 1
+                    pico.output.sound("data/snds/peteleco.wav")
+                }
+                set e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
+            }
+        }
+        set JOGO.quedas = JOGO.quedas + 1
+        pico.output.sound("data/snds/fall.wav")
+    }
+}

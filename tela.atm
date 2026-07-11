@@ -1,0 +1,204 @@
+;; screen layout: 3x3 sections and one drawing task per section;
+;; returns a task that spawns the background and the 9 instances;
+;; uses the globals set by main.atm (pico, CONF, conf, G, WIN, NOMES, JOGO)
+
+val COLORS = [
+    gray  = 0x969696,
+    rose  = 0xC86464,
+    green = 0x009600,
+]
+
+;; 3x3 sections:
+;;  cols: 4/11 + 3/11 + 4/11
+;;  rows:  3/8 +  2/8 +  3/8
+
+val SEC = [
+    tempo  = ['%', x=4/11, y=0,   w=3/11, h=3/8, anchor=:NW],
+    cima = [
+        esq = ['%', x=0,    y=0,   w=4/11, h=3/8, anchor=:NW],
+        dir = ['%', x=7/11, y=0,   w=4/11, h=3/8, anchor=:NW],
+    ],
+
+    quedas = ['%', x=4/11, y=3/8, w=3/11, h=2/8, anchor=:NW],
+    meio = [
+        esq = ['%', x=0,    y=3/8, w=4/11, h=2/8, anchor=:NW],
+        dir = ['%', x=7/11, y=3/8, w=4/11, h=2/8, anchor=:NW],
+    ],
+
+    pontos = ['%', x=4/11, y=5/8, w=3/11, h=3/8, anchor=:NW],
+    baixo = [
+        esq = ['%', x=0,    y=5/8, w=4/11, h=3/8, anchor=:NW],
+        dir = ['%', x=7/11, y=5/8, w=4/11, h=3/8, anchor=:NW],
+    ],
+]
+
+;; text width in section-local '%' for a section-local height
+val func txt_w (sec, s, h) {
+    val d = pico.get.text(['%', h=(h * sec.h)], s)
+    d.w / sec.w
+}
+
+;; TYPE 1 (cima.esq/dir): logo + atleta name
+task Cima (lado) {
+    val sec = SEC.cima@lado
+    val rs = [
+        logo = pico.xin.rect(sec) <- ['%', x=0.5, y=0.35, h=0.35],
+        nome = pico.xin.rect(sec) <- ['%', x=0.5, y=0.70, h=0.25],
+    ]
+    loop on :draw {
+        pico.output.draw.image(CONF.logo@lado, rs.logo)
+        pico.set.pencil [ color=:blue ]
+        pico.output.draw.text(NOMES@(inv(lado)), rs.nome)
+    }
+}
+
+;; TYPE 2 (tempo): clock box: pars line, mm:ss, descanso line
+task Tempo () {
+    val sec = SEC.tempo
+    val show = conf.tempo()
+    val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
+    val rs = [
+        box  = pico.xin.rect(sec) <- ['%', x=0, y=0, w=1, h=1, anchor=:NW],
+        pars = pico.xin.rect(sec) <- ['%', x=0.5, y=0, h=0.05, anchor=:N],
+        inv  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.10, h=0.05, anchor=:N],
+        mmss = pico.xin.rect(sec) <- ['%', x=0.5, y=0.40, h=0.35],
+        desc = pico.xin.rect(sec) <- ['%', x=0.5, y=0.85, h=0.10],
+        ico  = pico.xin.rect(sec) <- ['%', x=0.30, y=0.85, h=0.05],
+    ]
+    loop on :draw {
+        pico.set.pencil [ color=:black, style=:fill ]
+        pico.output.draw.rect(rs.box)
+        pico.set.pencil [ color=COLORS.gray ]
+        pico.output.draw.text("(" ++ conf.pars() ++ ")", rs.pars)
+        if G.inv {
+            pico.output.draw.text("inv", rs.inv)
+        }
+        pico.set.pencil [ color=:white ]
+        pico.output.draw.text(mmss, rs.mmss)
+        pico.set.pencil [ color=COLORS.gray ]
+        pico.output.draw.text(JOGO.descanso ++ " s", rs.desc)
+        pico.output.draw.image("data/icos/timeout.png", rs.ico)
+    }
+}
+
+;; TYPE 3 (meio.esq/dir): radar ok/no icon now; last golpe km/h in Phase 3
+task Meio (lado) {
+    val sec = SEC.meio@lado
+    val rs = [
+        ico = pico.xin.rect(sec) <- [
+            '%', x=(if lado == :esq => 0.05 => 0.95), y=0.5, h=0.20
+        ],
+    ]
+    loop on :draw {
+        if conf.radar() && (CONF.lado.radar == lado) {
+            pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
+        }
+    }
+}
+
+;; TYPE 4 (quedas): quedas red circle with white counter
+task Quedas () {
+    val sec = SEC.quedas
+    val h = 0.75
+    val w = ((h * sec.h) * WIN.h) / (sec.w * WIN.w)
+    val rs = [
+        oval = pico.xin.rect(sec) <- ['%', x=0.5, y=0.50, w=w, h=h],
+        num  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.45, h=0.45],
+    ]
+    loop on :draw {
+        pico.set.pencil [ color=:red, style=:fill ]
+        pico.output.draw.oval(rs.oval)
+        pico.set.pencil [ color=:white ]
+        pico.output.draw.text(tostring(JOGO.quedas), rs.num)
+    }
+}
+
+;; TYPE 5 (baixo.esq/dir): side panel: raquete, golpes/limite, flag, pontos;
+;; positions mirror horizontally between :esq and :dir
+task Baixo (lado) {
+    val sec = SEC.baixo@lado
+    val atas = conf.ataques()
+    val ix = (if lado == :esq => 0.25 => 0.75)
+    val nx = (if lado == :esq => 0.55 => 0.45)
+    val rs = [
+        raq  = pico.xin.rect(sec) <- ['%', x=ix, y=0.30, h=0.15],
+        flag = pico.xin.rect(sec) <- ['%', x=ix, y=0.75, h=0.10],
+        glp  = pico.xin.rect(sec) <- ['%', x=nx, y=0.30, h=0.15],
+        pts  = pico.xin.rect(sec) <- ['%', x=nx, y=0.70, h=0.15],
+    ]
+    loop on :draw {
+        val jog = inv(lado)
+        val glp = JOGO.golpes@jog
+        pico.output.draw.image("data/icos/raquete.png", rs.raq)
+        pico.output.draw.image("data/icos/flag.png", rs.flag)
+        pico.set.pencil [ color=(if (atas > 0) && (glp >= atas) => :red => :black) ]
+        pico.output.draw.text(tostring(glp), rs.glp)
+        val w1 = txt_w(sec, tostring(glp), 0.05)
+        pico.set.pencil [ color=COLORS.gray ]
+        pico.output.draw.text("/" ++ atas, pico.xin.rect(sec) <- [
+            '%', x=nx + w1 + 0.05, y=0.35, h=0.05, anchor=:NW
+        ])
+        pico.set.pencil [ color=:black ]
+        pico.output.draw.text(tostring(JOGO.pontos@jog), rs.pts)
+    }
+}
+
+;; TYPE 6 (pontos): bottom box: juiz, recorde + trophy, TOTAL, conta line
+task Pontos () {
+    val sec = SEC.pontos
+    val rs = [
+        box = pico.xin.rect(sec) <- ['%', x=0,   y=0,    h=1,w=1, anchor=:NW],
+        api = pico.xin.rect(sec) <- ['%', x=0.1, y=0.05, h=0.07,  anchor=:W],
+        arb = pico.xin.rect(sec) <- ['%', x=0.5, y=0.05, h=0.05],
+        tot = pico.xin.rect(sec) <- ['%', x=0.5, y=0.60, h=0.35],
+        cta = pico.xin.rect(sec) <- ['%', x=0.5, y=0.90, h=0.05],
+        tro = pico.xin.rect(sec) <- ['%', x=0.1, y=0.95, h=0.07,  anchor=:W],
+        rec = pico.xin.rect(sec) <- ['%', x=0.5, y=0.30, h=0.10],
+    ]
+    loop on :draw {
+        pico.set.pencil [ color=:black, style=:fill ]
+        pico.output.draw.rect(rs.box)
+
+        pico.output.draw.image("data/icos/apito.png", rs.api)
+        pico.set.pencil [ color=(if G.edit==:arb => :red => COLORS.gray) ]
+        pico.output.draw.text(NOMES.arb, rs.arb)
+
+        pico.set.pencil [
+            color = (if JOGO.total>=CONF.recorde => COLORS.gray => COLORS.rose)
+        ]
+        pico.output.draw.text(tostring(CONF.recorde), rs.rec)
+        pico.set.pencil [ color=:white ]
+        pico.output.draw.text(tostring(JOGO.total), rs.tot)
+
+        pico.output.draw.image("data/icos/trophy.png", rs.tro)
+        val conta = "(" ++ (JOGO.pontos.esq + JOGO.pontos.dir) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
+        pico.set.pencil [ color=COLORS.gray ]
+        pico.output.draw.text(conta, rs.cta)
+    }
+}
+
+;; the screen: background first, then the 9 instances
+task () {
+    spawn {
+        val rs = [
+            all  = ['%', x=0, y=0,   w=1, h=1,   anchor=:NW],
+            band = ['%', x=0, y=3/8, w=1, h=2/8, anchor=:NW],
+        ]
+        loop on :draw {
+            pico.set.pencil [ color=:white, style=:fill ]
+            pico.output.draw.rect(rs.all)
+            pico.set.pencil [ color=:black, style=:stroke ]
+            pico.output.draw.rect(rs.band)
+        }
+    }
+    spawn Cima(:esq)
+    spawn Cima(:dir)
+    spawn Tempo()
+    spawn Meio(:esq)
+    spawn Meio(:dir)
+    spawn Quedas()
+    spawn Baixo(:esq)
+    spawn Baixo(:dir)
+    spawn Pontos()
+    await(false)
+}
