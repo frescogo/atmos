@@ -8,7 +8,7 @@ task Partida () {
         await :key.dn [key=:Up, ctrl=true]
         set G.estado = :sacando
         pico.output.sound("data/snds/start.wav")
-        set JOGO.seqs@+ = []
+        set REGRA.seqs@+ = []
         watching :key.dn [key=:Down, ctrl=true] {
             var e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
             set G.estado = :jogando
@@ -18,14 +18,14 @@ task Partida () {
                     :Right => inv(:dir)
                 }
                 if jog {
-                    set JOGO.seqs@#@+ = [now=pico.get.now(), jog=jog]
-                    set JOGO.golpes@jog = JOGO.golpes@jog + 1
+                    set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog]
+                    set REGRA.golpes@jog = REGRA.golpes@jog + 1
                     pico.output.sound("data/snds/peteleco.wav")
                 }
                 set e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
             }
         }
-        set JOGO.quedas = JOGO.quedas + 1
+        set REGRA.quedas = REGRA.quedas + 1
         pico.output.sound("data/snds/fall.wav")
     }
 }

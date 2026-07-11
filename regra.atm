@@ -1,0 +1,17 @@
+val M = []
+
+func M.reset () {
+}
+
+func M.reset () {
+    set M.seqs     = []
+    set M.quedas   = 0
+    set M.total    = 0
+    set M.golpes   = [esq=0, dir=0]
+    set M.pontos   = [esq=0, dir=0]
+    set M.descanso = CONF.descanso
+}
+
+M.reset()
+
+M

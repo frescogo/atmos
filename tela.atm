@@ -1,6 +1,6 @@
 ;; screen layout: 3x3 sections and one drawing task per section;
 ;; returns a task that spawns the background and the 9 instances;
-;; uses the globals set by main.atm (pico, CONF, conf, G, WIN, NOMES, JOGO)
+;; uses the globals set by main.atm (pico, CONF, conf, G, WIN, NOMES, REGRA)
 
 val COLORS = [
     gray  = 0x969696,
@@ -70,7 +70,7 @@ task Tempo () {
         pico.set.pencil [ color=:white ]
         pico.output.draw.text(mmss, rs.mmss)
         pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text(JOGO.descanso ++ " s", rs.desc)
+        pico.output.draw.text(REGRA.descanso ++ " s", rs.desc)
         pico.output.draw.image("data/icos/timeout.png", rs.ico)
     }
 }
@@ -103,7 +103,7 @@ task Quedas () {
         pico.set.pencil [ color=:red, style=:fill ]
         pico.output.draw.oval(rs.oval)
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(tostring(JOGO.quedas), rs.num)
+        pico.output.draw.text(tostring(REGRA.quedas), rs.num)
     }
 }
 
@@ -123,7 +123,7 @@ task Baixo (lado) {
     ]
     loop on :draw {
         val jog = inv(lado)
-        val glp = JOGO.golpes@jog
+        val glp = REGRA.golpes@jog
         pico.output.draw.image("data/icos/raquete.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
         pico.set.pencil [ color=(if (atas > 0) && (glp >= atas) => :red => :black) ]
@@ -131,7 +131,7 @@ task Baixo (lado) {
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text("/" ++ atas, rs.lim)
         pico.set.pencil [ color=:black ]
-        pico.output.draw.text(tostring(JOGO.pontos@jog), rs.pts)
+        pico.output.draw.text(tostring(REGRA.pontos@jog), rs.pts)
     }
 }
 
@@ -156,14 +156,14 @@ task Pontos () {
         pico.output.draw.text(NOMES.arb, rs.arb)
 
         pico.set.pencil [
-            color = (if JOGO.total>=CONF.recorde => COLORS.gray => COLORS.rose)
+            color = (if REGRA.total>=CONF.recorde => COLORS.gray => COLORS.rose)
         ]
         pico.output.draw.text(tostring(CONF.recorde), rs.rec)
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(tostring(JOGO.total), rs.tot)
+        pico.output.draw.text(tostring(REGRA.total), rs.tot)
 
         pico.output.draw.image("data/icos/trophy.png", rs.tro)
-        val conta = "(" ++ (JOGO.pontos.esq + JOGO.pontos.dir) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
+        val conta = "(" ++ (REGRA.pontos.esq + REGRA.pontos.dir) ++ " - " ++ (jogo_quedas_pct() / 100) ++ "%)"
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text(conta, rs.cta)
     }
