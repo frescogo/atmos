@@ -16,12 +16,10 @@ task Partida () {
                 val jog = match e.key {
                     :Left  => inv(:esq)
                     :Right => inv(:dir)
+                    else   => error "impossible case"
                 }
-                if jog {
-                    set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog]
-                    set REGRA.golpes@jog = REGRA.golpes@jog + 1
-                    pico.output.sound("data/snds/peteleco.wav")
-                }
+                set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog]
+                pico.output.sound("data/snds/peteleco.wav")
                 set e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
             }
         }

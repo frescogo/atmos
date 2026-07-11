@@ -22,11 +22,11 @@ pico.set.pencil [ font="data/LiberationSans-Bold.ttf" ]
 
 set NOMES = [esq="Atleta 1", dir="Atleta 2", arb=CONF.arbitro]
 
-func inv (lado) {
+func inv (jog) {
     ifs {
-        (!G.inv)       => lado
-        (lado == :esq) => :dir
-        (lado == :dir) => :esq
+        (!G.inv)      => jog
+        (jog == :esq) => :dir
+        (jog == :dir) => :esq
     }
 }
 
@@ -42,10 +42,10 @@ set conf = [
     },
     quedas = [
         base = func () {
-            math.floor((CONF.tregua * conf.tempo()) / 60)
+            (CONF.tregua * conf.tempo()) / 60
         },
         pena = func () {
-            math.floor((CONF.quedas * 60) / conf.tempo())
+            ((CONF.quedas * 60) / conf.tempo()) / 100
         },
     ],
     pars = func () {
@@ -55,10 +55,6 @@ set conf = [
         "v" ++ VERSAO ++ " / " ++ tri_dup ++ " / " ++ rad_cm ++ " / " ++ tempo
     },
 ]
-
-func jogo_quedas_pct () {
-    math.max(0, REGRA.quedas - conf.quedas.base()) * conf.quedas.pena()
-}
 
 ;; the screen and the game FSM; require AFTER the globals above
 val Tela    = require "tela"
