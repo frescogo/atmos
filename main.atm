@@ -114,7 +114,23 @@ task Digita (alvo) {
 }
 
 spawn Tela()
-spawn Partida()
+
+;; a Partida per iteration; C-r (held) aborts and restarts clean
+spawn {
+    loop {
+        par:any {
+            await Partida()
+        } with {
+            await Hold(:R)
+            pico.output.sound("data/snds/restart.wav")
+        }
+        set JOGO.seqs   = []
+        set JOGO.quedas = 0
+        set JOGO.golpes = [esq=0, dir=0]
+        set JOGO.pontos = [esq=0, dir=0]
+        set JOGO.total  = 0
+    }
+}
 
 spawn {
     loop {
