@@ -32,12 +32,6 @@ val LAYOUT = [
     ],
 ]
 
-;; text width in section-local '%' for a section-local height
-val func txt_w (sec, s, h) {
-    val d = pico.get.text(['%', h=(h * sec.h)], s)
-    d.w / sec.w
-}
-
 ;; TYPE 1 (cima.esq/dir): logo + atleta name
 task Cima (lado) {
     val sec = LAYOUT.cima@lado
@@ -58,12 +52,12 @@ task Tempo () {
     val show = conf.tempo()
     val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
     val rs = [
-        box  = pico.xin.rect(sec) <- ['%', x=0, y=0, w=1, h=1, anchor=:NW],
-        pars = pico.xin.rect(sec) <- ['%', x=0.5, y=0, h=0.05, anchor=:N],
-        inv  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.10, h=0.05, anchor=:N],
+        box  = pico.xin.rect(sec) <- ['%', x=0,   y=0,    h=1,w=1, anchor=:NW],
+        pars = pico.xin.rect(sec) <- ['%', x=0.5, y=0,    h=0.05,  anchor=:N],
+        inv  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.10, h=0.05,  anchor=:N],
         mmss = pico.xin.rect(sec) <- ['%', x=0.5, y=0.40, h=0.35],
         desc = pico.xin.rect(sec) <- ['%', x=0.5, y=0.85, h=0.10],
-        ico  = pico.xin.rect(sec) <- ['%', x=0.30, y=0.85, h=0.05],
+        ico  = pico.xin.rect(sec) <- ['%', x=0.3, y=0.85, h=0.05],
     ]
     loop on :draw {
         pico.set.pencil [ color=:black, style=:fill ]
@@ -124,6 +118,7 @@ task Baixo (lado) {
         raq  = pico.xin.rect(sec) <- ['%', x=ix, y=0.30, h=0.15],
         flag = pico.xin.rect(sec) <- ['%', x=ix, y=0.75, h=0.10],
         glp  = pico.xin.rect(sec) <- ['%', x=nx, y=0.30, h=0.15],
+        lim  = pico.xin.rect(sec) <- ['%', x=nx+0.10, y=0.35, h=0.05, anchor=:NW],
         pts  = pico.xin.rect(sec) <- ['%', x=nx, y=0.70, h=0.15],
     ]
     loop on :draw {
@@ -133,11 +128,8 @@ task Baixo (lado) {
         pico.output.draw.image("data/icos/flag.png", rs.flag)
         pico.set.pencil [ color=(if (atas > 0) && (glp >= atas) => :red => :black) ]
         pico.output.draw.text(tostring(glp), rs.glp)
-        val w1 = txt_w(sec, tostring(glp), 0.05)
         pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text("/" ++ atas, pico.xin.rect(sec) <- [
-            '%', x=nx + w1 + 0.05, y=0.35, h=0.05, anchor=:NW
-        ])
+        pico.output.draw.text("/" ++ atas, rs.lim)
         pico.set.pencil [ color=:black ]
         pico.output.draw.text(tostring(JOGO.pontos@jog), rs.pts)
     }
