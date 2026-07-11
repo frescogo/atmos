@@ -12,7 +12,7 @@ val COLORS = [
 ;;  cols: 4/11 + 3/11 + 4/11
 ;;  rows:  3/8 +  2/8 +  3/8
 
-val SEC = [
+val LAYOUT = [
     tempo  = ['%', x=4/11, y=0,   w=3/11, h=3/8, anchor=:NW],
     cima = [
         esq = ['%', x=0,    y=0,   w=4/11, h=3/8, anchor=:NW],
@@ -40,7 +40,7 @@ val func txt_w (sec, s, h) {
 
 ;; TYPE 1 (cima.esq/dir): logo + atleta name
 task Cima (lado) {
-    val sec = SEC.cima@lado
+    val sec = LAYOUT.cima@lado
     val rs = [
         logo = pico.xin.rect(sec) <- ['%', x=0.5, y=0.35, h=0.35],
         nome = pico.xin.rect(sec) <- ['%', x=0.5, y=0.70, h=0.25],
@@ -54,7 +54,7 @@ task Cima (lado) {
 
 ;; TYPE 2 (tempo): clock box: pars line, mm:ss, descanso line
 task Tempo () {
-    val sec = SEC.tempo
+    val sec = LAYOUT.tempo
     val show = conf.tempo()
     val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
     val rs = [
@@ -83,7 +83,7 @@ task Tempo () {
 
 ;; TYPE 3 (meio.esq/dir): radar ok/no icon now; last golpe km/h in Phase 3
 task Meio (lado) {
-    val sec = SEC.meio@lado
+    val sec = LAYOUT.meio@lado
     val rs = [
         ico = pico.xin.rect(sec) <- [
             '%', x=(if lado == :esq => 0.05 => 0.95), y=0.5, h=0.20
@@ -98,7 +98,7 @@ task Meio (lado) {
 
 ;; TYPE 4 (quedas): quedas red circle with white counter
 task Quedas () {
-    val sec = SEC.quedas
+    val sec = LAYOUT.quedas
     val h = 0.75
     val w = ((h * sec.h) * WIN.h) / (sec.w * WIN.w)
     val rs = [
@@ -116,7 +116,7 @@ task Quedas () {
 ;; TYPE 5 (baixo.esq/dir): side panel: raquete, golpes/limite, flag, pontos;
 ;; positions mirror horizontally between :esq and :dir
 task Baixo (lado) {
-    val sec = SEC.baixo@lado
+    val sec = LAYOUT.baixo@lado
     val atas = conf.ataques()
     val ix = (if lado == :esq => 0.25 => 0.75)
     val nx = (if lado == :esq => 0.55 => 0.45)
@@ -145,7 +145,7 @@ task Baixo (lado) {
 
 ;; TYPE 6 (pontos): bottom box: juiz, recorde + trophy, TOTAL, conta line
 task Pontos () {
-    val sec = SEC.pontos
+    val sec = LAYOUT.pontos
     val rs = [
         box = pico.xin.rect(sec) <- ['%', x=0,   y=0,    h=1,w=1, anchor=:NW],
         api = pico.xin.rect(sec) <- ['%', x=0.1, y=0.05, h=0.07,  anchor=:W],
@@ -178,7 +178,7 @@ task Pontos () {
 }
 
 ;; the screen: background first, then the 9 instances
-task () {
+task Tela () {
     spawn {
         val rs = [
             all  = ['%', x=0, y=0,   w=1, h=1,   anchor=:NW],
@@ -202,3 +202,5 @@ task () {
     spawn Pontos()
     await(false)
 }
+
+Tela

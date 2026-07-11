@@ -3,7 +3,6 @@ val VERSAO = "4.3.0"
 require "atmos.env.pico"
 set pico = require "pico"
 set CONF = require "conf"
-pico.set.aids(false)
 
 ;; shared with tela.atm (globals via `set`; val/var would be chunk-local)
 set G = [
@@ -17,6 +16,7 @@ set WIN  = [w=1280,h= 720]
 
 pico.set.window [ title = ("FrescoGO! " ++ VERSAO) ]
 pico.set.dim ['!', w=WIN.w, h=WIN.h]
+pico.set.aids(false)
 pico.set.pencil [ font="data/LiberationSans-Bold.ttf" ]
 
 set NOMES = [esq="Atleta 1", dir="Atleta 2", arb=CONF.arbitro]

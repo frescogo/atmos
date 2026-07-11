@@ -2,7 +2,7 @@
 ;;   ocioso -> saque (C-Up) -> golpes (Left/Right) -> queda (C-Down) ->
 ;;   ocioso; arrows are exempt from Hold (v4.3)
 
-task () {
+task Partida () {
     loop {
         set G.estado = :ocioso
         await :key.dn [key=:Up, ctrl=true]
@@ -29,3 +29,5 @@ task () {
         pico.output.sound("data/snds/fall.wav")
     }
 }
+
+Partida
