@@ -6,6 +6,86 @@ func M.reset () {
     set M.descanso = CONF.descanso
 }
 
+;; speed (km/h) of golpe `i` in `seq`:
+;;  - radar golpes carry `kmh` (Phase 4)
+;;  - manual golpes derive from the time to the NEXT golpe:
+;;    36 * distancia(cm) / dt(ms), capped at CONF.maxima
+;;  - the last golpe of a seq has no next: 0 (it fell)
+func M.kmh (seq, i) {
+    val cur = seq@i
+    ifs {
+        cur.kmh        => cur.kmh
+        (#seq < (i+2)) => 0
+        else           => math.min(CONF.maxima, v) where {
+            v = (36 * CONF.distancia) / (seq@(i+1).now - cur.now)
+        }
+    }
+}
+
+;; per-side stats derived from M.seqs (call per frame):
+;; a golpe is valid if >= CONF.minima, ignoring each seq's last
+;; (it fell); only the top conf.ataques() score points, each
+;; worth min(100,kmh)^2 / 50
+func M.jog (jog) {
+    val kmhs = []
+    loop s in #M.seqs {
+        val seq = M.seqs@s
+        loop i in (#seq - 1) {
+            if (seq@i.jog == jog) && (M.kmh(seq,i) >= CONF.minima) {
+                set kmhs@+ = M.kmh(seq, i)
+            }
+        }
+    }
+    table.sort(kmhs)
+    val size = #kmhs
+    val n = math.min(conf.ataques(), size)
+    var sum1 = 0
+    var sum2 = 0
+    loop i in n {
+        val cur = math.min(100, kmhs@((size + 1) - i))
+        set sum1 = sum1 + cur
+        set sum2 = sum2 + ((cur * cur) / 50)
+    }
+    [
+        golpes = size,
+        pontos = sum2,
+        med    = sum1 / math.max(1, n),
+        max    = (if size == 0 => 0 => kmhs@size),
+        min    = (if size == 0 => 0 => kmhs@((size + 1) - n)),
+    ]
+}
+
+;; elapsed game time in seconds (stub until the timer step)
+func M.passado () {
+    0
+}
+
+;; equilibrio: clamps each side against the other, relaxing
+;; linearly during the first 100s (v4.3 jogo_equ)
+func M.equ () {
+    val esq = M.jog(:esq).pontos
+    val dir = M.jog(:dir).pontos
+    ifs {
+        (CONF.equilibrio == 0) => [esq=esq, dir=dir]
+        else => [esq=e, dir=d] where {
+            pct = math.max(0, 1 - (M.passado() / 100))
+            e = math.min(esq, math.max(esq * pct, (dir * CONF.equilibrio) / 100))
+            d = math.min(dir, math.max(dir * pct, (esq * CONF.equilibrio) / 100))
+        }
+    }
+}
+
+;; penalty: pct per queda beyond the tregua base
+func M.quedas_pct () {
+    math.max(0, M.quedas - conf.quedas.base()) * conf.quedas.pena()
+}
+
+;; final score
+func M.total () {
+    val ps = M.equ()
+    ((ps.esq + ps.dir) * (100 - M.quedas_pct())) / 100
+}
+
 M.reset()
 
 M
