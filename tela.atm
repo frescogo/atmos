@@ -49,8 +49,6 @@ task Cima (jog) {
 ;; TYPE 2 (tempo): clock box: pars line, mm:ss, descanso line
 task Tempo () {
     val sec = LAYOUT.tempo
-    val show = conf.tempo()
-    val mmss = string.format("%02d:%02d", math.floor(show / 60), show % 60)
     val rs = [
         box  = pico.xin.rect(sec) <- ['%', x=0,   y=0,    h=1,w=1, anchor=:NW],
         pars = pico.xin.rect(sec) <- ['%', x=0.5, y=0,    h=0.05,  anchor=:N],
@@ -67,8 +65,9 @@ task Tempo () {
         if G.inv {
             pico.output.draw.text("inv", rs.inv)
         }
+        val mm, ss = REGRA.tempo.show()
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(mmss, rs.mmss)
+        pico.output.draw.text(string.format("%02d:%02d", mm, ss), rs.mmss)
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text(REGRA.descanso ++ " s", rs.desc)
         pico.output.draw.image("data/icos/timeout.png", rs.ico)

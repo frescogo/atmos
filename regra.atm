@@ -55,9 +55,37 @@ func M.jog (jog) {
     ]
 }
 
-;; elapsed game time in seconds (stub until the timer step)
-func M.passado () {
-    0
+;; game clock
+set M.tempo = []
+
+;; elapsed game time in seconds: sum of each seq's span
+;; (first golpe to last golpe; rallies with 1 golpe count 0)
+func M.tempo.passado () {
+    var ms = 0
+    loop s in #M.seqs {
+        val seq = M.seqs@s
+        if #seq >= 2 {
+            set ms = ms + (seq@#.now - seq@(1).now)
+        }
+    }
+    ms / 1000
+}
+
+;; remaining game time
+func M.tempo.restante () {
+    math.max(0, conf.tempo() - M.tempo.passado())
+}
+
+;; remaining time to display, as an (mm, ss) integer pair: while a
+;; rally is running, the time since its last golpe also counts down
+;; live (v4.3 restante_show)
+func M.tempo.show () {
+    var s = M.tempo.restante()
+    if G.estado == :jogando {
+        set s = s - ((pico.get.now() - M.seqs@#@#.now) / 1000)
+    }
+    set s = math.floor(math.max(0, s))
+    (math.floor(s / 60), s % 60)
 }
 
 ;; equilibrio: clamps each side against the other, relaxing
@@ -68,7 +96,7 @@ func M.equ () {
     ifs {
         (CONF.equilibrio == 0) => [esq=esq, dir=dir]
         else => [esq=e, dir=d] where {
-            pct = math.max(0, 1 - (M.passado() / 100))
+            pct = math.max(0, 1 - (M.tempo.passado() / 100))
             e = math.min(esq, math.max(esq * pct, (dir * CONF.equilibrio) / 100))
             d = math.min(dir, math.max(dir * pct, (esq * CONF.equilibrio) / 100))
         }
