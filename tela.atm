@@ -104,7 +104,7 @@ task Meio (jog) {
     ;; ARROW: 0.5s after each golpe by this side's player
     spawn {
         loop {
-            await :golpe, \{ REGRA.seqs@#@#.jog == inv(jog) }
+            await :golpe until (REGRA.seqs@#@#.jog == inv(jog))
             watching (:golpe || 500ms) {
                 loop on :draw {
                     pico.set.pencil [ color=:blue, style=:fill ]
