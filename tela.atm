@@ -44,7 +44,7 @@ task Cima (jog, pos) {
         nome = pico.xin.rect(sec) <- ['%', x=0.5, y=0.70, h=0.25],
     ]
     loop on :draw {
-        pico.output.draw.image(CONF.logo@jog, rs.logo)
+        pico.output.draw.image(CONF.logo@pos, rs.logo)
         pico.set.pencil [ color=:blue ]
         pico.output.draw.text.dyn('text.jog.'++jog, NOMES@jog, rs.nome)
     }
@@ -98,7 +98,7 @@ task Meio (jog, pos) {
         ;; ARROW: 0.5s after each golpe by this player
         loop {
             await :golpe until (REGRA.seqs@#@#.jog == jog)
-            watching (:golpe || 500ms) {
+            watching 500ms {
                 loop on :draw {
                     pico.set.pencil [ color=:blue, style=:fill ]
                     pico.output.draw.rect(arr.bar)
@@ -115,7 +115,7 @@ task Meio (jog, pos) {
             if (n >= 2) && (seq@(n-1).jog == jog) {
                 val kmh = math.floor(REGRA.kmh(seq, n - 1))
                 if kmh > 0 {
-                    watching (:golpe || 1500ms) {
+                    watching 1500ms {
                         loop on :draw {
                             pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
                             pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
