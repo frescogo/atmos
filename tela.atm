@@ -40,9 +40,10 @@ task Cima (jog) {
         nome = pico.xin.rect(sec) <- ['%', x=0.5, y=0.70, h=0.25],
     ]
     loop on :draw {
+        val jogi = inv(jog)
         pico.output.draw.image(CONF.logo@jog, rs.logo)
         pico.set.pencil [ color=:blue ]
-        pico.output.draw.text.dyn(:text.inv, NOMES@(inv(jog)), rs.nome)
+        pico.output.draw.text.dyn('text.jog.'++jogi, NOMES@jogi, rs.nome)
     }
 }
 
@@ -127,7 +128,7 @@ task Meio (jog) {
                     watching (:golpe || 1500ms) {
                         loop on :draw {
                             pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
-                            pico.output.draw.text.dyn(tostring(kmh), rs.num)
+                            pico.output.draw.text.dyn('text.kmh.'++inv(jog), tostring(kmh), rs.num)
                             pico.output.draw.text.fix("km/h", rs.lbl)
                         }
                     }
@@ -169,17 +170,18 @@ task Baixo (jog) {
         lim  = pico.xin.rect(sec) <- ['%', x=nx+0.10, y=0.35, h=0.05, anchor=:NW],
         pts  = pico.xin.rect(sec) <- ['%', x=nx, y=0.70, h=0.15],
     ]
-    val pre = 'text.' ++ jog
     loop on :draw {
-        val jog = REGRA.jog(inv(jog))
+        val jogi = inv(jog)
+        val JOG = REGRA.jog(jogi)
+        val pre = 'text.' ++ jogi
         pico.output.draw.image("data/icos/raquete.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
-        pico.set.pencil [ color=(if (atas > 0) && (jog.golpes >= atas) => :red => :black) ]
-        pico.output.draw.text.dyn(pre++'.golpes', tostring(jog.golpes), rs.glp)
+        pico.set.pencil [ color=(if (atas > 0) && (JOG.golpes >= atas) => :red => :black) ]
+        pico.output.draw.text.dyn(pre++'.golpes', tostring(JOG.golpes), rs.glp)
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text.dyn(pre++'.atas', "/" ++ atas, rs.lim)
         pico.set.pencil [ color=:black ]
-        pico.output.draw.text.dyn(pre++'.pontos', tostring(math.floor(jog.pontos)), rs.pts)
+        pico.output.draw.text.dyn(pre++'.pontos', tostring(math.floor(JOG.pontos)), rs.pts)
     }
 }
 

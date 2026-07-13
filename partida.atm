@@ -19,7 +19,7 @@ task Partida () {
                     else   => error "impossible case"
                 }
                 set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog]
-                emit(:golpe)
+                emit @(:global) :golpe
                 pico.output.sound("data/snds/peteleco.wav")
                 set e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
             }

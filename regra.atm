@@ -15,7 +15,7 @@ func M.kmh (seq, i) {
     val cur = seq@i
     ifs {
         cur.kmh        => cur.kmh
-        (#seq < (i+2)) => 0
+        (#seq < (i+1)) => 0
         else           => math.min(CONF.maxima, v) where {
             v = (36 * CONF.distancia) / (seq@(i+1).now - cur.now)
         }
