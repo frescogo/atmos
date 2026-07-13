@@ -82,25 +82,15 @@ task Meio (jog) {
     val sec = LAYOUT.meio@jog
     val mx = (if jog == :esq => 1 => -1)
     val rs = [
-        ico = pico.xin.rect(sec) <- [
-            '%', x=(if jog == :esq => 0.05 => 0.95), y=0.5, h=0.20
-        ],
         num = pico.xin.rect(sec) <- ['%', x=0.5 - (mx * 0.10), y=0.45, h=0.45],
         lbl = pico.xin.rect(sec) <- ['%', x=0.5 - (mx * 0.10), y=0.75, h=0.10],
+    ]
+    val arr = [
         sft = pico.xin.rect(sec) <- ['%', x=0.5 + (mx * 0.20), y=0.50, w=0.10, h=0.04],
         tp1 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.29), y=0.50],
         tp2 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.44],
         tp3 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.56],
     ]
-
-    ;; radar ok/no icon
-    spawn {
-        loop on :draw {
-            if conf.radar() && (CONF.lado.radar == jog) {
-                pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
-            }
-        }
-    }
 
     ;; ARROW: 0.5s after each golpe by this side's player
     spawn {
@@ -109,8 +99,8 @@ task Meio (jog) {
             watching (:golpe || 500ms) {
                 loop on :draw {
                     pico.set.pencil [ color=:blue, style=:fill ]
-                    pico.output.draw.rect(rs.sft)
-                    pico.output.draw.tri(rs.tp1, rs.tp2, rs.tp3)
+                    pico.output.draw.rect(arr.sft)
+                    pico.output.draw.tri(arr.tp1, arr.tp2, arr.tp3)
                 }
             }
         }
@@ -235,6 +225,20 @@ task Tela () {
             pico.output.draw.rect(rs.band)
         }
     }
+
+    ;; radar ok/no icon on the configured side (was per-Meio)
+    spawn {
+        val jog = CONF.lado.radar
+        val ico = pico.xin.rect(LAYOUT.meio@jog) <- [
+            '%', x=(if jog == :esq => 0.05 => 0.95), y=0.5, h=0.20
+        ]
+        loop on :draw {
+            if conf.radar() {
+                pico.output.draw.image("data/icos/radar-ok.png", ico)
+            }
+        }
+    }
+
     spawn Cima(:esq)
     spawn Cima(:dir)
     spawn Tempo()
