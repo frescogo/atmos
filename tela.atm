@@ -42,7 +42,7 @@ task Cima (jog) {
     loop on :draw {
         pico.output.draw.image(CONF.logo@jog, rs.logo)
         pico.set.pencil [ color=:blue ]
-        pico.output.draw.text(NOMES@(inv(jog)), rs.nome)
+        pico.output.draw.text.dyn(:text.inv, NOMES@(inv(jog)), rs.nome)
     }
 }
 
@@ -57,19 +57,20 @@ task Tempo () {
         desc = pico.xin.rect(sec) <- ['%', x=0.5, y=0.85, h=0.10],
         ico  = pico.xin.rect(sec) <- ['%', x=0.3, y=0.85, h=0.05],
     ]
+
     loop on :draw {
         pico.set.pencil [ color=:black, style=:fill ]
         pico.output.draw.rect(rs.box)
         pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text("(" ++ conf.pars() ++ ")", rs.pars)
+        pico.output.draw.text.fix("(" ++ conf.pars() ++ ")", rs.pars)
         if G.inv {
-            pico.output.draw.text("inv", rs.inv)
+            pico.output.draw.text.fix("inv", rs.inv)
         }
         val mm, ss = REGRA.tempo.show()
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(string.format("%02d:%02d", mm, ss), rs.mmss)
+        pico.output.draw.text.dyn(:text.tempo, string.format("%02d:%02d", mm, ss), rs.mmss)
         pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text(REGRA.descanso ++ " s", rs.desc)
+        pico.output.draw.text.dyn(:text.descanso, REGRA.descanso ++ " s", rs.desc)
         pico.output.draw.image("data/icos/timeout.png", rs.ico)
     }
 }
@@ -126,8 +127,8 @@ task Meio (jog) {
                     watching (:golpe || 1500ms) {
                         loop on :draw {
                             pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
-                            pico.output.draw.text(tostring(kmh), rs.num)
-                            pico.output.draw.text("km/h", rs.lbl)
+                            pico.output.draw.text.dyn(tostring(kmh), rs.num)
+                            pico.output.draw.text.fix("km/h", rs.lbl)
                         }
                     }
                 }
@@ -151,7 +152,7 @@ task Quedas () {
         pico.set.pencil [ color=:red, style=:fill ]
         pico.output.draw.oval(rs.oval)
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(tostring(REGRA.quedas), rs.num)
+        pico.output.draw.text.dyn(:text.quedas, tostring(REGRA.quedas), rs.num)
     }
 }
 
@@ -169,16 +170,17 @@ task Baixo (jog) {
         lim  = pico.xin.rect(sec) <- ['%', x=nx+0.10, y=0.35, h=0.05, anchor=:NW],
         pts  = pico.xin.rect(sec) <- ['%', x=nx, y=0.70, h=0.15],
     ]
+    val pre = 'text.' ++ jog
     loop on :draw {
         val jog = REGRA.jog(inv(jog))
         pico.output.draw.image("data/icos/raquete.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
         pico.set.pencil [ color=(if (atas > 0) && (jog.golpes >= atas) => :red => :black) ]
-        pico.output.draw.text(tostring(jog.golpes), rs.glp)
+        pico.output.draw.text.dyn(pre++'.golpes', tostring(jog.golpes), rs.glp)
         pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text("/" ++ atas, rs.lim)
+        pico.output.draw.text.dyn(pre++'.atas', "/" ++ atas, rs.lim)
         pico.set.pencil [ color=:black ]
-        pico.output.draw.text(tostring(math.floor(jog.pontos)), rs.pts)
+        pico.output.draw.text.dyn(pre++'.pontos', tostring(math.floor(jog.pontos)), rs.pts)
     }
 }
 
@@ -200,21 +202,21 @@ task Pontos () {
 
         pico.output.draw.image("data/icos/apito.png", rs.api)
         pico.set.pencil [ color=(if G.edit==:arb => :red => COLORS.gray) ]
-        pico.output.draw.text(NOMES.arb, rs.arb)
+        pico.output.draw.text.dyn(:text.arb, NOMES.arb, rs.arb)
 
         val total = math.floor(REGRA.total())
         pico.set.pencil [
             color = (if total>=CONF.recorde => COLORS.gray => COLORS.rose)
         ]
-        pico.output.draw.text(tostring(CONF.recorde), rs.rec)
+        pico.output.draw.text.dyn(:text.recorde, tostring(CONF.recorde), rs.rec)
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text(tostring(total), rs.tot)
+        pico.output.draw.text.dyn(:text.total, tostring(total), rs.tot)
 
         pico.output.draw.image("data/icos/trophy.png", rs.tro)
         val ps = REGRA.equ()
         val conta = "(" ++ math.floor(ps.esq + ps.dir) ++ " - " ++ REGRA.quedas_pct() ++ "%)"
         pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text(conta, rs.cta)
+        pico.output.draw.text.dyn(:text.conta, conta, rs.cta)
     }
 }
 
