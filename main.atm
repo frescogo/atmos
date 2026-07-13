@@ -12,8 +12,8 @@ set G = [
     estado = :ocioso,   ;; :ocioso | :sacando | :jogando
 ]
 
-;;set WIN = [w=1920,h=1080]
-set WIN  = [w=1280,h= 720]
+;;val WIN = [w=1920,h=1080]
+val WIN  = [w=1280,h= 720]
 
 pico.set.window [ title = ("FrescoGO! " ++ VERSAO) ]
 pico.set.dim ['!', w=WIN.w, h=WIN.h]

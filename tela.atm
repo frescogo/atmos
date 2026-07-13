@@ -1,6 +1,6 @@
 ;; screen layout: 3x3 sections and one drawing task per section;
 ;; returns a task that spawns the background and the 9 instances;
-;; uses the globals set by main.atm (pico, CONF, conf, G, WIN, NOMES, REGRA)
+;; uses the globals set by main.atm (pico, CONF, conf, G, NOMES, REGRA)
 
 val COLORS = [
     gray  = 0x969696,
@@ -143,9 +143,8 @@ task Meio (jog) {
 task Quedas () {
     val sec = LAYOUT.quedas
     val h = 0.75
-    val w = ((h * sec.h) * WIN.h) / (sec.w * WIN.w)
     val rs = [
-        oval = pico.xin.rect(sec) <- ['%', x=0.5, y=0.50, w=w, h=h],
+        oval = pico.xin.rect(sec) <- ['%', x=0.5, y=0.50, h=h],
         num  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.45, h=0.45],
     ]
     loop on :draw {
