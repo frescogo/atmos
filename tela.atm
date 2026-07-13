@@ -74,19 +74,68 @@ task Tempo () {
     }
 }
 
-;; TYPE 3 (meio.esq/dir): radar ok/no icon now; last golpe km/h in Phase 3
+;; TYPE 3 (meio.esq/dir): radar ok/no icon; last completed golpe km/h
+;; (1.5s window) + blue arrow on the hitter's side (0.5s window)
 task Meio (jog) {
     val sec = LAYOUT.meio@jog
+    val mx = (if jog == :esq => 1 => -1)
     val rs = [
         ico = pico.xin.rect(sec) <- [
             '%', x=(if jog == :esq => 0.05 => 0.95), y=0.5, h=0.20
         ],
+        num = pico.xin.rect(sec) <- ['%', x=0.5 - (mx * 0.10), y=0.45, h=0.45],
+        lbl = pico.xin.rect(sec) <- ['%', x=0.5 - (mx * 0.10), y=0.75, h=0.10],
+        sft = pico.xin.rect(sec) <- ['%', x=0.5 + (mx * 0.20), y=0.50, w=0.10, h=0.04],
+        tp1 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.29), y=0.50],
+        tp2 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.44],
+        tp3 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.56],
     ]
-    loop on :draw {
-        if conf.radar() && (CONF.lado.radar == jog) {
-            pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
+
+    ;; radar ok/no icon
+    spawn {
+        loop on :draw {
+            if conf.radar() && (CONF.lado.radar == jog) {
+                pico.output.draw.image("data/icos/radar-ok.png", rs.ico)
+            }
         }
     }
+
+    ;; ARROW: 0.5s after each golpe by this side's player
+    spawn {
+        loop {
+            await :golpe, \{ REGRA.seqs@#@#.jog == inv(jog) }
+            watching (:golpe || 500ms) {
+                loop on :draw {
+                    pico.set.pencil [ color=:blue, style=:fill ]
+                    pico.output.draw.rect(rs.sft)
+                    pico.output.draw.tri(rs.tp1, rs.tp2, rs.tp3)
+                }
+            }
+        }
+    }
+
+    ;; KMH: 1.5s after this side's golpe is completed by the next one
+    spawn {
+        loop {
+            await :golpe
+            val seq = REGRA.seqs@#
+            val n = #seq
+            if (n >= 2) && (seq@(n-1).jog == inv(jog)) {
+                val kmh = math.floor(REGRA.kmh(seq, n - 1))
+                if kmh > 0 {
+                    watching (:golpe || 1500ms) {
+                        loop on :draw {
+                            pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
+                            pico.output.draw.text(tostring(kmh), rs.num)
+                            pico.output.draw.text("km/h", rs.lbl)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    await(false)
 }
 
 ;; TYPE 4 (quedas): quedas red circle with white counter
