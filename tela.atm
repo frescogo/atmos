@@ -86,28 +86,26 @@ task Meio (jog) {
         lbl = pico.xin.rect(sec) <- ['%', x=0.5 - (mx * 0.10), y=0.75, h=0.10],
     ]
     val arr = [
-        sft = pico.xin.rect(sec) <- ['%', x=0.5 + (mx * 0.20), y=0.50, w=0.10, h=0.04],
-        tp1 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.29), y=0.50],
-        tp2 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.44],
-        tp3 = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.56],
+        bar = pico.xin.rect(sec) <- ['%', x=0.5 + (mx * 0.20), y=0.50, w=0.10, h=0.04],
+        tip = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.29), y=0.50],
+        upp = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.44],
+        low = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.56],
     ]
 
-    ;; ARROW: 0.5s after each golpe by this side's player
-    spawn {
+    par {
+        ;; ARROW: 0.5s after each golpe by this side's player
         loop {
             await :golpe until (REGRA.seqs@#@#.jog == inv(jog))
             watching (:golpe || 500ms) {
                 loop on :draw {
                     pico.set.pencil [ color=:blue, style=:fill ]
-                    pico.output.draw.rect(arr.sft)
-                    pico.output.draw.tri(arr.tp1, arr.tp2, arr.tp3)
+                    pico.output.draw.rect(arr.bar)
+                    pico.output.draw.tri(arr.tip, arr.upp, arr.low)
                 }
             }
         }
-    }
-
-    ;; KMH: 1.5s after this side's golpe is completed by the next one
-    spawn {
+    } with {
+        ;; KMH: 1.5s after this side's golpe is completed by the next one
         loop {
             await :golpe
             val seq = REGRA.seqs@#
@@ -126,8 +124,6 @@ task Meio (jog) {
             }
         }
     }
-
-    await(false)
 }
 
 ;; TYPE 4 (quedas): quedas red circle with white counter
