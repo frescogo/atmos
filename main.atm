@@ -120,6 +120,7 @@ spawn {
         par:any {
             await Hold(:I)
             set G.inv = !G.inv
+            emit @(:global) :inv
         } with {
             await Hold(:A)
             await Digita(:arb)

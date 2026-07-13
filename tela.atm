@@ -1,6 +1,10 @@
 ;; screen layout: 3x3 sections and one drawing task per section;
 ;; returns a task that spawns the background and the 9 instances;
 ;; uses the globals set by main.atm (pico, CONF, conf, G, NOMES, REGRA)
+;;
+;; side tasks take (jog, pos): jog = PLAYER (data), pos = SIDE (geometry);
+;; the esq<->dir swap lives ONLY in Tela and respawns the 6 side panels
+;; on each :inv (emitted by main.atm when G.inv toggles)
 
 val COLORS = [
     gray  = 0x969696,
@@ -32,18 +36,17 @@ val LAYOUT = [
     ],
 ]
 
-;; TYPE 1 (cima.esq/dir): logo + atleta name
-task Cima (jog) {
-    val sec = LAYOUT.cima@jog
+;; TYPE 1 (cima): logo by POS (physical side), name by JOG (player)
+task Cima (jog, pos) {
+    val sec = LAYOUT.cima@pos
     val rs = [
         logo = pico.xin.rect(sec) <- ['%', x=0.5, y=0.35, h=0.35],
         nome = pico.xin.rect(sec) <- ['%', x=0.5, y=0.70, h=0.25],
     ]
     loop on :draw {
-        val jogi = inv(jog)
         pico.output.draw.image(CONF.logo@jog, rs.logo)
         pico.set.pencil [ color=:blue ]
-        pico.output.draw.text.dyn('text.jog.'++jogi, NOMES@jogi, rs.nome)
+        pico.output.draw.text.dyn('text.jog.'++jog, NOMES@jog, rs.nome)
     }
 }
 
@@ -76,11 +79,10 @@ task Tempo () {
     }
 }
 
-;; TYPE 3 (meio.esq/dir): radar ok/no icon; last completed golpe km/h
-;; (1.5s window) + blue arrow on the hitter's side (0.5s window)
-task Meio (jog) {
-    val sec = LAYOUT.meio@jog
-    val mx = (if jog == :esq => 1 => -1)
+;; TYPE 3 (meio): mirror by POS (mx); golpe match + cache by JOG (player)
+task Meio (jog, pos) {
+    val sec = LAYOUT.meio@pos
+    val mx = (if pos == :esq => 1 => -1)
     val rs = [
         num = pico.xin.rect(sec) <- ['%', x=0.5 - (mx * 0.10), y=0.45, h=0.45],
         lbl = pico.xin.rect(sec) <- ['%', x=0.5 - (mx * 0.10), y=0.75, h=0.10],
@@ -93,9 +95,9 @@ task Meio (jog) {
     ]
 
     par {
-        ;; ARROW: 0.5s after each golpe by this side's player
+        ;; ARROW: 0.5s after each golpe by this player
         loop {
-            await :golpe until (REGRA.seqs@#@#.jog == inv(jog))
+            await :golpe until (REGRA.seqs@#@#.jog == jog)
             watching (:golpe || 500ms) {
                 loop on :draw {
                     pico.set.pencil [ color=:blue, style=:fill ]
@@ -105,18 +107,18 @@ task Meio (jog) {
             }
         }
     } with {
-        ;; KMH: 1.5s after this side's golpe is completed by the next one
+        ;; KMH: 1.5s after this player's golpe is completed by the next one
         loop {
             await :golpe
             val seq = REGRA.seqs@#
             val n = #seq
-            if (n >= 2) && (seq@(n-1).jog == inv(jog)) {
+            if (n >= 2) && (seq@(n-1).jog == jog) {
                 val kmh = math.floor(REGRA.kmh(seq, n - 1))
                 if kmh > 0 {
                     watching (:golpe || 1500ms) {
                         loop on :draw {
                             pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
-                            pico.output.draw.text.dyn('text.kmh.'++inv(jog), tostring(kmh), rs.num)
+                            pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
                             pico.output.draw.text.fix("km/h", rs.lbl)
                         }
                     }
@@ -142,13 +144,12 @@ task Quedas () {
     }
 }
 
-;; TYPE 5 (baixo.esq/dir): side panel: raquete, golpes/limite, flag, pontos;
-;; positions mirror horizontally between :esq and :dir
-task Baixo (jog) {
-    val sec = LAYOUT.baixo@jog
+;; TYPE 5 (baixo): mirror by POS (ix/nx); data + cache by JOG (player)
+task Baixo (jog, pos) {
+    val sec = LAYOUT.baixo@pos
     val atas = conf.ataques()
-    val ix = (if jog==:esq => 0.25 => 0.75)
-    val nx = (if jog==:esq => 0.55 => 0.45)
+    val ix = (if pos==:esq => 0.25 => 0.75)
+    val nx = (if pos==:esq => 0.55 => 0.45)
     val rs = [
         raq  = pico.xin.rect(sec) <- ['%', x=ix, y=0.30, h=0.15],
         flag = pico.xin.rect(sec) <- ['%', x=ix, y=0.75, h=0.10],
@@ -156,10 +157,9 @@ task Baixo (jog) {
         lim  = pico.xin.rect(sec) <- ['%', x=nx+0.10, y=0.35, h=0.05, anchor=:NW],
         pts  = pico.xin.rect(sec) <- ['%', x=nx, y=0.70, h=0.15],
     ]
+    val pre = 'text.' ++ jog
     loop on :draw {
-        val jogi = inv(jog)
-        val JOG = REGRA.jog(jogi)
-        val pre = 'text.' ++ jogi
+        val JOG = REGRA.jog(jog)
         pico.output.draw.image("data/icos/raquete.png", rs.raq)
         pico.output.draw.image("data/icos/flag.png", rs.flag)
         pico.set.pencil [ color=(if (atas > 0) && (JOG.golpes >= atas) => :red => :black) ]
@@ -207,7 +207,8 @@ task Pontos () {
     }
 }
 
-;; the screen: background first, then the 9 instances
+;; the screen: background + radar + center column once;
+;; the 6 side panels respawn on every :inv with a fresh player->pos map
 task Tela () {
     spawn {
         val rs = [
@@ -222,11 +223,10 @@ task Tela () {
         }
     }
 
-    ;; radar ok/no icon on the configured side (was per-Meio)
+    ;; radar ok/no icon on the configured PHYSICAL side (never inverts)
     spawn {
-        val jog = CONF.lado.radar
-        val ico = pico.xin.rect(LAYOUT.meio@jog) <- [
-            '%', x=(if jog == :esq => 0.05 => 0.95), y=0.5, h=0.20
+        val ico = pico.xin.rect(LAYOUT.meio@(CONF.lado.radar)) <- [
+            '%', x=(if CONF.lado.radar == :esq => 0.05 => 0.95), y=0.5, h=0.20
         ]
         loop on :draw {
             if conf.radar() {
@@ -235,16 +235,23 @@ task Tela () {
         }
     }
 
-    spawn Cima(:esq)
-    spawn Cima(:dir)
+    ;; side-independent center column
     spawn Tempo()
-    spawn Meio(:esq)
-    spawn Meio(:dir)
     spawn Quedas()
-    spawn Baixo(:esq)
-    spawn Baixo(:dir)
     spawn Pontos()
-    await(false)
+
+    ;; side panels: swap player->position here (the ONLY inv logic),
+    ;; respawn the whole set whenever G.inv toggles
+    loop {
+        val pe,pd = if G.inv => (:dir,:esq) => (:esq,:dir)
+        spawn Cima(:esq, pe)
+        spawn Cima(:dir, pd)
+        spawn Meio(:esq, pe)
+        spawn Meio(:dir, pd)
+        spawn Baixo(:esq, pe)
+        spawn Baixo(:dir, pd)
+        await :inv
+    }
 }
 
 Tela
