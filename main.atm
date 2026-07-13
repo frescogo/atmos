@@ -67,7 +67,7 @@ task Hold (key) {
         val e = await (:key.up || 1s)
         while (e ?? :key.up)
     }
-    pico.output.sound("data/snds/peteleco.wav")
+    pico.output.sound("data/snds/confirm.wav")
     await :key.up [ctrl=false]
 }
 
