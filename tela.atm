@@ -167,7 +167,7 @@ task Baixo (jog, pos) {
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text.dyn(pre++'.atas', "/" ++ atas, rs.lim)
         pico.set.pencil [ color=:black ]
-        pico.output.draw.text.dyn(pre++'.pontos', tostring(math.floor(JOG.pontos)), rs.pts)
+        pico.output.draw.text.dyn(pre++'.pontos', JOG.pontos->math.floor->tostring, rs.pts)
     }
 }
 
@@ -191,7 +191,7 @@ task Pontos () {
         pico.set.pencil [ color=(if G.edit==:arb => :red => COLORS.gray) ]
         pico.output.draw.text.dyn(:text.arb, NOMES.arb, rs.arb)
 
-        val total = math.floor(REGRA.total())
+        val total = REGRA.total() -> math.floor
         pico.set.pencil [
             color = (if total>=CONF.recorde => COLORS.gray => COLORS.rose)
         ]

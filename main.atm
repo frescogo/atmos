@@ -22,12 +22,15 @@ pico.set.pencil [ font="data/LiberationSans-Bold.ttf" ]
 
 set NOMES = [esq="Atleta 1", dir="Atleta 2", arb=CONF.arbitro]
 
-func inv (jog) {
+func oth (jog) {
     ifs {
-        (!G.inv)      => jog
         (jog == :esq) => :dir
         (jog == :dir) => :esq
     }
+}
+
+func inv (jog) {
+    if G.inv => oth(jog) => jog
 }
 
 set conf = [
