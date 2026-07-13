@@ -94,33 +94,29 @@ task Meio (jog, pos) {
         low = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.56],
     ]
 
-    par {
-        ;; ARROW: 0.5s after each golpe by this player
-        loop {
-            await :golpe until (REGRA.seqs@#@#.jog == jog)
-            watching 500ms {
-                loop on :draw {
-                    pico.set.pencil [ color=:blue, style=:fill ]
-                    pico.output.draw.rect(arr.bar)
-                    pico.output.draw.tri(arr.tip, arr.upp, arr.low)
+    await :golpe until (REGRA.seqs@#@#.jog == jog)
+    loop {
+        watching :golpe until (REGRA.seqs@#@#.jog == jog) {
+            par {
+                ;; ARROW: 0.5s after each golpe by this player
+                watching 500ms {
+                    loop on :draw {
+                        pico.set.pencil [ color=:blue, style=:fill ]
+                        pico.output.draw.rect(arr.bar)
+                        pico.output.draw.tri(arr.tip, arr.upp, arr.low)
+                    }
                 }
-            }
-        }
-    } with {
-        ;; KMH: 1.5s after this player's golpe is completed by the next one
-        loop {
-            await :golpe
-            val seq = REGRA.seqs@#
-            val n = #seq
-            if (n >= 2) && (seq@(n-1).jog == jog) {
-                val kmh = math.floor(REGRA.kmh(seq, n - 1))
-                if kmh > 0 {
-                    watching 1500ms {
-                        loop on :draw {
-                            pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
-                            pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
-                            pico.output.draw.text.fix("km/h", rs.lbl)
-                        }
+            } with {
+                ;; TODO: radar
+                await :golpe until (REGRA.seqs@#@#.jog == oth(jog))
+                val SEQ = REGRA.seqs@#
+                val kmh = REGRA.kmh(SEQ, #SEQ-1) -> math.floor
+                assert(kmh > 0)
+                watching 1500ms {
+                    loop on :draw {
+                        pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
+                        pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
+                        pico.output.draw.text.fix("km/h", rs.lbl)
                     }
                 }
             }
