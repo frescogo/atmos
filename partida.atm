@@ -47,6 +47,7 @@ task Partida () {
                 )
             }
         }
+        emit @:global :queda
         set REGRA.quedas = REGRA.quedas + 1
         pico.output.sound("data/snds/fall.wav")
     }

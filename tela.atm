@@ -105,37 +105,42 @@ task Meio (jog, pos) {
         low = pico.xin.pos(sec) <- ['%', x=0.5 + (mx * 0.25), y=0.56],
     ]
 
-    await :golpe until (REGRA.seqs@#@#.jog == jog)
     loop {
-        ;; ARROW: a cada golpe por 500ms
-        spawn {
-            watching 500ms {
-                loop on :draw {
-                    pico.set.pencil [ color=:blue, style=:fill ]
-                    pico.output.draw.rect(arr.bar)
-                    pico.output.draw.tri(arr.tip, arr.upp, arr.low)
+        watching :queda {
+            await :golpe until (REGRA.seqs@#@#.jog == jog)
+            loop {
+                ;; ARROW: a cada golpe por 500ms
+                spawn {
+                    watching 500ms {
+                        loop on :draw {
+                            pico.set.pencil [ color=:blue, style=:fill ]
+                            pico.output.draw.rect(arr.bar)
+                            pico.output.draw.tri(arr.tip, arr.upp, arr.low)
+                        }
+                    }
                 }
+                val SEQ = REGRA.seqs@#
+                spawn {
+                    val kmh = if CONF.serial {
+                        await 250ms
+                        SEQ@#.kmh
+                    } else {
+                        await :golpe until (SEQ@#.jog == oth(jog))
+                        REGRA.kmh(SEQ, #SEQ-1) -> math.floor
+                    }
+                    assert(kmh > 0)
+                    watching 1500ms {
+                        loop on :draw {
+                            pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
+                            pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
+                            pico.output.draw.text.fix("km/h", rs.lbl)
+                        }
+                    }
+                }
+                await :golpe until (SEQ@#.jog == jog)
             }
         }
-        val SEQ = REGRA.seqs@#
-        spawn {
-            val kmh = if CONF.serial {
-                await 250ms
-                SEQ@#.kmh
-            } else {
-                await :golpe until (REGRA.seqs@#@#.jog == oth(jog))
-                REGRA.kmh(SEQ, #SEQ-1) -> math.floor
-            }
-            assert(kmh > 0)
-            watching 1500ms {
-                loop on :draw {
-                    pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
-                    pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
-                    pico.output.draw.text.fix("km/h", rs.lbl)
-                }
-            }
-        }
-        await :golpe until (REGRA.seqs@#@#.jog == jog)
+        ;; TODO: show X
     }
 }
 
