@@ -59,6 +59,7 @@ task Tempo () {
         inv  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.10, h=0.05,  anchor=:N],
         mmss = pico.xin.rect(sec) <- ['%', x=0.5, y=0.40, h=0.35],
         desc = pico.xin.rect(sec) <- ['%', x=0.5, y=0.85, h=0.10],
+        esg  = pico.xin.rect(sec) <- ['%', x=0.5, y=0.96, h=0.05],
         ico  = pico.xin.rect(sec) <- ['%', x=0.3, y=0.85, h=0.05],
     ]
 
@@ -70,11 +71,21 @@ task Tempo () {
         if G.inv {
             pico.output.draw.text.fix("inv", rs.inv)
         }
-        val mm, ss = REGRA.tempo.show()
+
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text.dyn(:text.tempo, string.format("%02d:%02d", mm, ss), rs.mmss)
-        pico.set.pencil [ color=COLORS.gray ]
-        pico.output.draw.text.dyn(:text.descanso, REGRA.descanso ++ " s", rs.desc)
+        pico.output.draw.text.dyn(:text.tempo, txt, rs.mmss) where {
+            mm, ss = REGRA.tempo.show()
+            txt = string.format("%02d:%02d", mm, ss)
+        }
+
+        val descanso = REGRA.descanso / 1s --> math.ceil
+        pico.set.pencil [ color=(if descanso < 0 => :red => COLORS.gray) ]
+        pico.output.draw.text.dyn(:text.descanso, txt, rs.desc) where {
+            txt = string.format("% 4d s", descanso)
+        }
+        if descanso < 0 {
+            pico.output.draw.text.fix("(ESGOTADO)", rs.esg)
+        }
         pico.output.draw.image("data/icos/timeout.png", rs.ico)
     }
 }
