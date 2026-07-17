@@ -34,9 +34,6 @@ func inv (jog) {
 }
 
 set conf = [
-    radar = func () {
-        false
-    },
     tempo = func () {
         CONF.tempo
     },
@@ -53,15 +50,16 @@ set conf = [
     ],
     pars = func () {
         val tri_dup = if CONF.trinca => "trinca" => "dupla"
-        val rad_cm  = if conf.radar() => "radar" => (CONF.distancia ++ "cm")
+        val rad_cm  = if CONF.serial => "radar" => (CONF.distancia ++ "cm")
         val tempo   = conf.tempo() ++ "s"
         "v" ++ VERSAO ++ " / " ++ tri_dup ++ " / " ++ rad_cm ++ " / " ++ tempo
     },
 ]
 
-;; the screen and the game FSM; require AFTER the globals above
+;; the screen, the game FSM, and the radar; require AFTER the globals above
 val Tela    = require "tela"
 val Partida = require "partida"
+val Radar   = require "radar"
 
 ;; awaits ctrl+key held for 3s (v4.3 KEY_TIMER); early release restarts
 task Hold (key) {
@@ -103,6 +101,7 @@ task Digita (alvo) {
     }
 }
 
+spawn Radar()
 spawn Tela()
 
 ;; a Partida per iteration; C-r (held) aborts and restarts clean

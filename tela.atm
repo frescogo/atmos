@@ -236,7 +236,7 @@ task Tela () {
             '%', x=(if CONF.lado.radar == :esq => 0.05 => 0.95), y=0.5, h=0.20
         ]
         loop on :draw {
-            if conf.radar() {
+            if CONF.serial {
                 pico.output.draw.image("data/icos/radar-ok.png", ico)
             }
         }

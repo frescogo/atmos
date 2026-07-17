@@ -1,0 +1,25 @@
+;; RADAR (mock): every 500ms, ~50% chance of a reading:
+;; vel 30..maxima km/h, lado = PHYSICAL side that hit it
+;; (consumers map to the player via inv())
+
+val task Mock () {
+    math.randomseed()
+    loop {
+        await 500ms
+        if math.random(4) <= 2 {
+            emit @:global :radar [vel=v, lado=l] where {
+                v = math.random(30, CONF.maxima)
+                l = if math.random(5) >= 3 => CONF.lado.radar => oth(CONF.lado.radar)
+            }
+        }
+    }
+}
+
+task Radar () {
+    match CONF.serial {
+        :mock => await Mock()
+        else  => error "invalid serial"
+    }
+}
+
+Radar
