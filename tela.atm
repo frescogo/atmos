@@ -107,31 +107,35 @@ task Meio (jog, pos) {
 
     await :golpe until (REGRA.seqs@#@#.jog == jog)
     loop {
-        watching :golpe until (REGRA.seqs@#@#.jog == jog) {
-            par {
-                ;; ARROW: 0.5s after each golpe by this player
-                watching 500ms {
-                    loop on :draw {
-                        pico.set.pencil [ color=:blue, style=:fill ]
-                        pico.output.draw.rect(arr.bar)
-                        pico.output.draw.tri(arr.tip, arr.upp, arr.low)
-                    }
-                }
-            } with {
-                ;; TODO: radar
-                await :golpe until (REGRA.seqs@#@#.jog == oth(jog))
-                val SEQ = REGRA.seqs@#
-                val kmh = REGRA.kmh(SEQ, #SEQ-1) -> math.floor
-                assert(kmh > 0)
-                watching 1500ms {
-                    loop on :draw {
-                        pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
-                        pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
-                        pico.output.draw.text.fix("km/h", rs.lbl)
-                    }
+        ;; ARROW: a cada golpe por 500ms
+        spawn {
+            watching 500ms {
+                loop on :draw {
+                    pico.set.pencil [ color=:blue, style=:fill ]
+                    pico.output.draw.rect(arr.bar)
+                    pico.output.draw.tri(arr.tip, arr.upp, arr.low)
                 }
             }
         }
+        val SEQ = REGRA.seqs@#
+        spawn {
+            val kmh = if CONF.serial {
+                await 250ms
+                SEQ@#.kmh
+            } else {
+                await :golpe until (REGRA.seqs@#@#.jog == oth(jog))
+                REGRA.kmh(SEQ, #SEQ-1) -> math.floor
+            }
+            assert(kmh > 0)
+            watching 1500ms {
+                loop on :draw {
+                    pico.set.pencil [ color=(if kmh >= CONF.minima => :black => :silver) ]
+                    pico.output.draw.text.dyn('text.kmh.'++jog, tostring(kmh), rs.num)
+                    pico.output.draw.text.fix("km/h", rs.lbl)
+                }
+            }
+        }
+        await :golpe until (REGRA.seqs@#@#.jog == jog)
     }
 }
 

@@ -14,6 +14,7 @@ task Partida () {
         pico.output.sound("data/snds/start.wav")
         set REGRA.seqs@+ = []
         watching :key.dn [key=:Down, ctrl=true] {
+            ;; saque
             var e = do {
                 ;; descanso
                 spawn {
@@ -22,19 +23,28 @@ task Partida () {
                         set REGRA.descanso = REGRA.descanso - dt
                     }
                 }
-                await (:key.dn [key=:Left] || :key.dn [key=:Right])
+                ;; golpe manual ou radar>saque
+                par:any {
+                    await (:key.dn [key=:Left] || :key.dn [key=:Right])
+                } with {
+                    await (:radar until it.vel>=CONF.saque)
+                }
             }
             set G.estado = :jogando
             loop {
-                val jog = match e.key {
-                    :Left  => inv(:esq)
-                    :Right => inv(:dir)
-                    else   => error "impossible case"
+                ;; radar: physical side -> player, vel as kmh;
+                ;; manual arrows in radar mode: fixed 30 km/h (v4.3)
+                val jog, kmh = ifs {
+                    (e ?? :radar)    => (inv(e.lado), e.vel)
+                    (e.key == :Left) => (inv(:esq), (if CONF.serial => 30 => nil))
+                    else             => (inv(:dir), (if CONF.serial => 30 => nil))
                 }
-                set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog]
+                set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog, kmh=kmh]
                 emit @:global :golpe
                 pico.output.sound("data/snds/peteleco.wav")
-                set e = await (:key.dn [key=:Left] || :key.dn [key=:Right])
+                set e = await (
+                    :key.dn [key=:Left] || :key.dn [key=:Right] || :radar
+                )
             }
         }
         set REGRA.quedas = REGRA.quedas + 1
