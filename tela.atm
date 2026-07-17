@@ -122,8 +122,9 @@ task Meio (jog, pos) {
                 val SEQ = REGRA.seqs@#
                 spawn {
                     val kmh = if CONF.serial {
+                        val v = SEQ@#.kmh
                         await 250ms
-                        SEQ@#.kmh
+                        v
                     } else {
                         await :golpe until (SEQ@#.jog == oth(jog))
                         REGRA.kmh(SEQ, #SEQ-1) -> math.floor
