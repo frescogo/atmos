@@ -34,24 +34,21 @@ func inv (jog) {
 }
 
 set conf = [
-    tempo = func () {
-        CONF.tempo
-    },
     ataques = func () {
-        math.max(1, math.floor(((conf.tempo() * CONF.ataques) / 60) / 2))
+        math.max(1, math.floor(((CONF.tempo * CONF.ataques) / 60) / 2))
     },
     quedas = [
         base = func () {
-            (CONF.tregua * conf.tempo()) / 60
+            (CONF.tregua * CONF.tempo) / 60
         },
         pena = func () {
-            ((CONF.quedas * 60) / conf.tempo()) / 100
+            ((CONF.quedas * 60) / CONF.tempo) / 100
         },
     ],
     pars = func () {
         val tri_dup = if CONF.trinca => "trinca" => "dupla"
         val rad_cm  = if CONF.serial => "radar" => (CONF.distancia ++ "cm")
-        val tempo   = conf.tempo() ++ "s"
+        val tempo   = CONF.tempo ++ "s"
         "v" ++ VERSAO ++ " / " ++ tri_dup ++ " / " ++ rad_cm ++ " / " ++ tempo
     },
 ]

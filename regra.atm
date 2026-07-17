@@ -73,7 +73,7 @@ func M.tempo.passado () {
 
 ;; remaining game time
 func M.tempo.restante () {
-    math.max(0, conf.tempo() - M.tempo.passado())
+    math.max(0, CONF.tempo - M.tempo.passado())
 }
 
 ;; remaining time to display, as an (mm, ss) integer pair: while a
