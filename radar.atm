@@ -17,8 +17,9 @@ val task Mock () {
 
 task Radar () {
     match CONF.serial {
-        :mock => await Mock()
-        else  => error "invalid serial"
+        :mock  => await Mock()
+        \!     => nil
+        else   => error "TODO : serial"
     }
 }
 
