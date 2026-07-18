@@ -4,6 +4,20 @@
 ;; the task terminates when the game ends (tempo esgotado or aborta
 ;; quedas limit), leaving G.estado = :terminado
 
+;; hit sound by speed band; with radar, below minima is silent (v4.3)
+val func sound (kmh) {
+    val file = ifs {
+        (CONF.serial && (kmh < CONF.minima)) => return()
+        (kmh < 60)  => "golpe-60.wav"
+        (kmh < 70)  => "golpe-70.wav"
+        (kmh < 80)  => "golpe-80.wav"
+        (kmh < 90)  => "golpe-90.wav"
+        (kmh < 100) => "golpe-100.wav"
+        else        => "golpe-max.wav"
+    }
+    pico.output.sound("data/snds/" ++ file)
+}
+
 task Partida () {
     spawn {
         await until (REGRA.descanso <= 0)
@@ -56,9 +70,13 @@ task Partida () {
                             (e.key == :Left) => (inv(:esq), (if CONF.serial => 30 => nil))
                             else             => (inv(:dir), (if CONF.serial => 30 => nil))
                         }
-                        set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog, kmh=kmh]
+                        val SEQ = REGRA.seqs@#
+                        set SEQ@+ = [now=pico.get.now(), jog=jog, kmh=kmh]
+                        ifs {
+                            (e ?? :radar) => sound(REGRA.kmh(SEQ, #SEQ))      ;; radar:  current
+                            (#SEQ >= 2)   => sound(REGRA.kmh(SEQ, #SEQ - 1))  ;; manual: previous
+                        }
                         emit @:global :golpe
-                        pico.output.sound("data/snds/peteleco.wav")
                         set e = await (
                             :key.dn [key=:Left] || :key.dn [key=:Right] || :radar
                         )
@@ -79,6 +97,7 @@ task Partida () {
         }
     }
     set G.estado = :terminado
+    pico.output.sound("data/snds/finish.wav")
 }
 
 Partida
