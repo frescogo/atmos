@@ -29,7 +29,7 @@ val task Serial (dev, lado) {
     }
 
     ;; next raw reading: [vel=, lado=] (vel 0 = nothing), nil = bad frame
-    val func ler () {
+    val func One () {
         do :ok {
             loop {
                 await :clock
@@ -75,29 +75,23 @@ val task Serial (dev, lado) {
     ;; shots: a candidate opens on a non-zero reading and must survive
     ;; reps-1 confirmations (same side, within 25% gap, no zeros)
     loop {
-        var cur = nil
-        loop {
-            val v = ler()
-            if v && (v.vel > 0) {
-                set cur = [lado=v.lado, min=v.vel, max=v.vel]
+        val cur = loop {
+            val v = One()
+            if v && (v.vel>0) {
+                break [
+                    lado=v.lado, min=v.vel, max=v.vel
+                ]
             }
-            until (cur)
         }
-        var ok = true
-        loop _ in (CONF.radar.reps - 1) {
-            val v = ler()
-            ifs {
-                ((!v) || (v.vel == 0)) => set ok = false
-                (v.lado != cur.lado)   => set ok = false
-                else => {
-                    set cur.min = math.min(cur.min, v.vel)
-                    set cur.max = math.max(cur.max, v.vel)
-                    set ok = ((cur.min * 1.25) >= cur.max)
-                }
-            }
-            until (!ok)
+        val no = loop in CONF.radar.reps-1 {
+            val v = One()
+            until (!v || (v.vel==0))
+            until (v.lado != cur.lado)
+            set cur.min = math.min(cur.min, v.vel)
+            set cur.max = math.max(cur.max, v.vel)
+            until ((cur.min * 1.25) < cur.max)
         }
-        if ok {
+        if !no {
             emit @:global :radar [vel=cur.max, lado=cur.lado]
             await 250ms
         }
