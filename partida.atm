@@ -1,16 +1,16 @@
 ;; PARTIDA: the ESTADO machine:
 ;;   ocioso -> saque (C-Up) -> golpes (Left/Right) -> queda (C-Down) ->
 ;;   ocioso; arrows are exempt from Hold (v4.3);
-;; the task terminates when the game ends (tempo esgotado), leaving
-;; G.estado = :terminado
+;; the task terminates when the game ends (tempo esgotado or aborta
+;; quedas limit), leaving G.estado = :terminado
 
 task Partida () {
     spawn {
         await until (REGRA.descanso <= 0)
         pico.output.sound("data/snds/30s.wav")
     }
-    ;; fim de jogo: tempo esgotado
-    watching until (REGRA.tempo.restante() <= 0) {
+    ;; fim de jogo: tempo esgotado ou quedas demais (aborta)
+    watching until ((REGRA.tempo.restante() <= 0) || (REGRA.quedas >= (CONF.tempo / CONF.aborta))) {
         loop {
             set G.estado = :ocioso
             par:any {
