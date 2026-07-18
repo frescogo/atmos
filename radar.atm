@@ -15,11 +15,100 @@ val task Mock () {
     }
 }
 
+;; RADAR (serial): 23-byte frames after the 0x88 sync; dir byte at 8
+;; (66=inb, 64=out), speed ascii at 9-12 (/10 = km/h); emits the same
+;; :radar [vel=, lado=] as Mock, ONE per detected shot:
+;; CONF.radar.reps consecutive non-zero same-side readings within a
+;; 25% gap; 250ms cooldown after each shot;
+;; `lado` = the PHYSICAL side the radar is deployed at (dir out = that
+;; side hit it, dir inb = the other side)
+val task Serial (dev, lado) {
+    val f = require("periphery").Serial(dev, 9600)
+    defer {
+        f::close()
+    }
+
+    ;; next raw reading: [vel=, lado=] (vel 0 = nothing), nil = bad frame
+    val func ler () {
+        do :ok {
+            loop {
+                await :clock
+                loop {
+                    val c = f::read(1, 0)
+                    until (c == '')
+                    if c == string.char(0x88) {
+                        escape :ok
+                    }
+                }
+            }
+        }
+        var s = ""
+        do :ok {
+            loop {
+                await :clock
+                loop {
+                    val c = f::read(1, 0)
+                    until (c == '')
+                    set s = s ++ c
+                    if #s == 23 {
+                        escape :ok
+                    }
+                }
+            }
+        }
+        val num = tonumber(string.sub(s, 9, 12))
+        val dir = match string.byte(string.sub(s, 8, 8)) {
+            66   => :inb
+            64   => :out
+            else => nil
+        }
+        ifs {
+            (num == nil) => nil
+            (dir == nil) => nil
+            else => [lado=l, vel=v] where {
+                l = if dir == :out => lado => oth(lado)
+                v = ((num + 5) / 10) -> math.floor
+            }
+        }
+    }
+
+    ;; shots: a candidate opens on a non-zero reading and must survive
+    ;; reps-1 confirmations (same side, within 25% gap, no zeros)
+    loop {
+        var cur = nil
+        loop {
+            val v = ler()
+            if v && (v.vel > 0) {
+                set cur = [lado=v.lado, min=v.vel, max=v.vel]
+            }
+            until (cur)
+        }
+        var ok = true
+        loop _ in (CONF.radar.reps - 1) {
+            val v = ler()
+            ifs {
+                ((!v) || (v.vel == 0)) => set ok = false
+                (v.lado != cur.lado)   => set ok = false
+                else => {
+                    set cur.min = math.min(cur.min, v.vel)
+                    set cur.max = math.max(cur.max, v.vel)
+                    set ok = ((cur.min * 1.25) >= cur.max)
+                }
+            }
+            until (!ok)
+        }
+        if ok {
+            emit @:global :radar [vel=cur.max, lado=cur.lado]
+            await 250ms
+        }
+    }
+}
+
 task Radar () {
     match CONF.serial {
-        :mock  => await Mock()
-        \!     => nil
-        else   => error "TODO : serial"
+        :mock => await Mock()
+        \!    => nil
+        else  => await Serial(CONF.serial, CONF.lado.radar)
     }
 }
 

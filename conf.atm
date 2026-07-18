@@ -13,7 +13,7 @@
     esquenta    = 60,
     descanso    = 90,
     recorde     = 0,
-    serial      = :mock,    ;; :mock | nil/false=off | true=auto | str=dev
+    serial      = "/dev/ttyACM0",    ;; :mock | nil/false=off | true=auto | str=dev
     lado = [
         radar = :esq,
         pivo  = :esq,
