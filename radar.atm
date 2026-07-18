@@ -1,6 +1,6 @@
 ;; RADAR (mock): every 500ms, ~50% chance of a reading:
 ;; vel 30..maxima km/h, lado = PHYSICAL side that hit it
-;; (consumers map to the player via inv())
+;; (maps to the player directly: inv does NOT apply to the radar)
 
 val task Mock () {
     math.randomseed()

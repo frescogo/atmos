@@ -8,6 +8,7 @@ set REGRA = require "regra"
 ;; shared with tela.atm (globals via `set`; val/var would be chunk-local)
 set G = [
     inv    = false,     ;; screen inverted
+    auto   = false,     ;; radar auto: queda by timeout, saque by timer
     edit   = nil,       ;; name being typed: nil,:arb,:esq,:dir
     estado = :ocioso,   ;; :ocioso | :sacando | :jogando
 ]
@@ -122,6 +123,9 @@ spawn {
             emit @:global :inv
         } with {
             await Hold(:A)
+            set G.auto = !G.auto
+        } with {
+            await Hold('0')
             await Digita(:arb)
         }
     }
