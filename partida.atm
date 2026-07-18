@@ -79,6 +79,7 @@ task Partida () {
         }
     }
     set G.estado = :terminado
+    pico.output.sound("data/snds/finish.wav")
 }
 
 Partida
