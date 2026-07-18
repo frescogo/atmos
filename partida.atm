@@ -1,78 +1,84 @@
 ;; PARTIDA: the ESTADO machine:
 ;;   ocioso -> saque (C-Up) -> golpes (Left/Right) -> queda (C-Down) ->
-;;   ocioso; arrows are exempt from Hold (v4.3)
+;;   ocioso; arrows are exempt from Hold (v4.3);
+;; the task terminates when the game ends (tempo esgotado), leaving
+;; G.estado = :terminado
 
 task Partida () {
     spawn {
         await until (REGRA.descanso <= 0)
         pico.output.sound("data/snds/30s.wav")
     }
-    loop {
-        set G.estado = :ocioso
-        par:any {
-            await :key.dn [key=:Up, ctrl=true]
-        } with {
-            ;; RADAR_AUTO: saque automatico 1s apos a queda
-            ;; (nunca no inicio de jogo: seqs vazio)
-            if G.auto && (#REGRA.seqs > 0) {
-                await 1s
-            } else {
-                await(false)
-            }
-        }
-        set G.estado = :sacando
-        pico.output.sound("data/snds/start.wav")
-        set REGRA.seqs@+ = []
-        watching :key.dn [key=:Down, ctrl=true] {
-            ;; saque
-            var e = do {
-                ;; descanso
-                spawn {
-                    await 5s    ;; tregua inicial
-                    loop dt on :clock {
-                        set REGRA.descanso = REGRA.descanso - dt
-                    }
-                }
-                ;; golpe manual ou radar>saque
-                par:any {
-                    await (:key.dn [key=:Left] || :key.dn [key=:Right])
-                } with {
-                    await (:radar until it.vel>=CONF.saque)
-                }
-            }
-            set G.estado = :jogando
+    ;; fim de jogo: tempo esgotado
+    watching until (REGRA.tempo.restante() <= 0) {
+        loop {
+            set G.estado = :ocioso
             par:any {
-                loop {
-                    ;; radar: physical side -> player, vel as kmh;
-                    ;; manual arrows in radar mode: fixed 30 km/h (v4.3)
-                    ;; keys are screen-relative (inv applies); the radar is
-                    ;; a physical device (inv does NOT apply) -- v4.3
-                    val jog, kmh = ifs {
-                        (e ?? :radar)    => (e.lado, e.vel)
-                        (e.key == :Left) => (inv(:esq), (if CONF.serial => 30 => nil))
-                        else             => (inv(:dir), (if CONF.serial => 30 => nil))
-                    }
-                    set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog, kmh=kmh]
-                    emit @:global :golpe
-                    pico.output.sound("data/snds/peteleco.wav")
-                    set e = await (
-                        :key.dn [key=:Left] || :key.dn [key=:Right] || :radar
-                    )
-                }
+                await :key.dn [key=:Up, ctrl=true]
             } with {
-                ;; RADAR_AUTO: queda apos 3.5s sem golpes
-                loop {
-                    watching :golpe {
-                        await 3500ms
-                        until (G.auto)
+                ;; RADAR_AUTO: saque automatico 1s apos a queda
+                ;; (nunca no inicio de jogo: seqs vazio)
+                if G.auto && (#REGRA.seqs > 0) {
+                    await 1s
+                } else {
+                    await(false)
+                }
+            }
+            set G.estado = :sacando
+            pico.output.sound("data/snds/start.wav")
+            set REGRA.seqs@+ = []
+            watching :key.dn [key=:Down, ctrl=true] {
+                ;; saque
+                var e = do {
+                    ;; descanso
+                    spawn {
+                        await 5s    ;; tregua inicial
+                        loop dt on :clock {
+                            set REGRA.descanso = REGRA.descanso - dt
+                        }
+                    }
+                    ;; golpe manual ou radar>saque
+                    par:any {
+                        await (:key.dn [key=:Left] || :key.dn [key=:Right])
+                    } with {
+                        await (:radar until it.vel>=CONF.saque)
+                    }
+                }
+                set G.estado = :jogando
+                par:any {
+                    loop {
+                        ;; radar: physical side -> player, vel as kmh;
+                        ;; manual arrows in radar mode: fixed 30 km/h (v4.3)
+                        ;; keys are screen-relative (inv applies); the radar is
+                        ;; a physical device (inv does NOT apply) -- v4.3
+                        val jog, kmh = ifs {
+                            (e ?? :radar)    => (e.lado, e.vel)
+                            (e.key == :Left) => (inv(:esq), (if CONF.serial => 30 => nil))
+                            else             => (inv(:dir), (if CONF.serial => 30 => nil))
+                        }
+                        set REGRA.seqs@#@+ = [now=pico.get.now(), jog=jog, kmh=kmh]
+                        emit @:global :golpe
+                        pico.output.sound("data/snds/peteleco.wav")
+                        set e = await (
+                            :key.dn [key=:Left] || :key.dn [key=:Right] || :radar
+                        )
+                    }
+                } with {
+                    ;; RADAR_AUTO: queda apos 3.5s sem golpes
+                    loop {
+                        watching :golpe {
+                            await 3500ms
+                            until (G.auto)
+                        }
                     }
                 }
             }
+            emit @:global :queda
+            set REGRA.quedas = REGRA.quedas + 1
+            pico.output.sound("data/snds/fall.wav")
         }
-        emit @:global :queda
-        set REGRA.quedas = REGRA.quedas + 1
-        pico.output.sound("data/snds/fall.wav")
     }
+    set G.estado = :terminado
 }
 
 Partida

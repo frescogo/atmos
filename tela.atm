@@ -64,7 +64,7 @@ task Tempo () {
     ]
 
     loop on :draw {
-        pico.set.pencil [ color=:black, style=:fill ]
+        pico.set.pencil [ color=(if G.estado == :terminado => :red => :black), style=:fill ]
         pico.output.draw.rect(rs.box)
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text.fix("(" ++ conf.pars() ++ ")", rs.pars)

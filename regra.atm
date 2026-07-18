@@ -114,6 +114,4 @@ func M.total () {
     ((ps.esq + ps.dir) * (100 - M.quedas_pct())) / 100
 }
 
-M.reset()
-
 M

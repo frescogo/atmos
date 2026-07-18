@@ -10,7 +10,7 @@ set G = [
     inv    = false,     ;; screen inverted
     auto   = false,     ;; radar auto: queda by timeout, saque by timer
     edit   = nil,       ;; name being typed: nil,:arb,:esq,:dir
-    estado = :ocioso,   ;; :ocioso | :sacando | :jogando
+    estado = :ocioso,   ;; :ocioso | :sacando | :jogando | :terminado
 ]
 
 ;;val WIN = [w=1920,h=1080]
@@ -105,13 +105,10 @@ spawn Tela()
 ;; a Partida per iteration; C-r (held) aborts and restarts clean
 spawn {
     loop {
-        par:any {
-            await Partida()
-        } with {
-            await Hold(:R)
-            pico.output.sound("data/snds/restart.wav")
-        }
         REGRA.reset()
+        spawn Partida()
+        await Hold(:R)
+        pico.output.sound("data/snds/restart.wav")
     }
 }
 
