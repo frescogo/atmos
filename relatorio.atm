@@ -12,7 +12,7 @@ func () {
 
     val esq = REGRA.jog(:esq)
     val dir = REGRA.jog(:dir)
-    val desc = ((CONF.descanso * 1s) - REGRA.descanso) / 1s -> math.floor
+    val desc = ((CONF.descanso * 1s) - REGRA.descanso) / 1s --> math.floor
 
     val f = io.open(base ++ ".txt", "w")
     f::write(string.format("Data:      %s\n", ts))
