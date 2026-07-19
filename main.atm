@@ -107,8 +107,17 @@ spawn Tela()
 spawn {
     loop {
         REGRA.reset()
-        spawn Partida()
-        await Hold(:R)
+        watching Hold :R {
+            watching Hold :S {
+                await Partida()
+            }
+            loop {
+                pico.output.sound("data/snds/finish.wav")
+                await 2s    ;; garante tela limpa para o screenshot
+                relatorio()
+                await Hold :S
+            }
+        }
         pico.output.sound("data/snds/restart.wav")
     }
 }
