@@ -38,6 +38,9 @@ set conf = [
     ataques = func () {
         math.max(1, math.floor(((CONF.tempo * CONF.ataques) / 60) / 2))
     },
+    aborta = func () {
+        CONF.tempo / CONF.aborta
+    },
     quedas = [
         base = func () {
             (CONF.tregua * CONF.tempo) / 60
@@ -122,14 +125,27 @@ spawn {
                     }
                 }
             }
-            watching Hold :S {
-                await Partida()
-            }
             loop {
-                pico.output.sound("data/snds/finish.wav")
-                await 2s    ;; garante tela limpa para o screenshot
-                relatorio()
-                await Hold :S
+                watching Hold :S {
+                    await Partida()
+                }
+                watching Hold :Backspace {
+                    loop {
+                        pico.output.sound("data/snds/finish.wav")
+                        await 2s    ;; garante tela limpa para o screenshot
+                        relatorio()
+                        await Hold :S
+                    }
+                }
+                ;; undo do terminado: desfaz a ultima sequencia
+                ;; (e sua queda apenas se o jogo acabou por aborta)
+                if #REGRA.seqs > 0 {
+                    if REGRA.quedas >= conf.aborta() {
+                        set REGRA.quedas = REGRA.quedas - 1
+                    }
+                    set REGRA.seqs@# = nil
+                    pico.output.sound("data/snds/undo.wav")
+                }
             }
         }
         pico.output.sound("data/snds/restart.wav")

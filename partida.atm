@@ -31,7 +31,7 @@ task Partida () {
     ;; fim de jogo: tempo esgotado ou quedas demais (aborta)
     val func fend () {
         (REGRA.tempo.restante() <= 0) ||
-        (REGRA.quedas >= (CONF.tempo/CONF.aborta))
+        (REGRA.quedas >= conf.aborta())
     }
 
     watching until fend() {
