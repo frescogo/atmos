@@ -4,11 +4,11 @@
 ;;   resultados.csv                        (one line per game, appended)
 
 func () {
-    val ts = os.date("%Y_%m_%d_%H_%M_%S")
+    val ts = os.date("%y%m%d-%H%M%S")
     os.execute("mkdir -p relatorios")
     val base = "relatorios/frescogo-" ++ ts ++ "-" ++ NOMES.esq ++ "-" ++ NOMES.dir
 
-    pico.output.screenshot("window", base ++ "-placar.png")
+    pico.output.screenshot(:window, base ++ ".png")
 
     val esq = REGRA.jog(:esq)
     val dir = REGRA.jog(:dir)
