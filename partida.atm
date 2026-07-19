@@ -23,8 +23,11 @@ task Partida () {
         await until (REGRA.descanso <= 0)
         pico.output.sound("data/snds/30s.wav")
     }
-    ;; fim de jogo: tempo esgotado ou quedas demais (aborta)
-    watching until ((REGRA.tempo.restante() <= 0) || (REGRA.quedas >= (CONF.tempo / CONF.aborta))) {
+    ;; fim de jogo: CTRL-S ou tempo esgotado ou quedas demais (aborta)
+    watching Hold :S {
+    watching until (
+        (REGRA.tempo.restante() <= 0) || (REGRA.quedas >= (CONF.tempo/CONF.aborta))
+    ) {
         loop {
             set G.estado = :ocioso
             par:any {
@@ -96,12 +99,14 @@ task Partida () {
             pico.output.sound("data/snds/fall.wav")
         }
     }
+    }
     set G.estado = :terminado
-    pico.output.sound("data/snds/finish.wav")
-
-    ;; guarantees clear window for the screenshot
-    await 2s
-    relatorio()
+    loop {
+        pico.output.sound("data/snds/finish.wav")
+        await 2s    ;; guarantees clear window for the screenshot
+        relatorio()
+        await Hold :S
+    }
 }
 
 Partida
