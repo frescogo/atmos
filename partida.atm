@@ -98,6 +98,10 @@ task Partida () {
     }
     set G.estado = :terminado
     pico.output.sound("data/snds/finish.wav")
+
+    ;; guarantees clear window for the screenshot
+    await 2s
+    relatorio()
 }
 
 Partida

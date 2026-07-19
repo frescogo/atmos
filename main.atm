@@ -55,9 +55,10 @@ set conf = [
 ]
 
 ;; the screen, the game FSM, and the radar; require AFTER the globals above
-val Tela    = require "tela"
-val Partida = require "partida"
-val Radar   = require "radar"
+val Tela      = require "tela"
+val Partida   = require "partida"
+val Radar     = require "radar"
+set relatorio = require "relatorio"
 
 ;; awaits ctrl+key held for 3s (v4.3 KEY_TIMER); early release restarts
 task Hold (key) {

@@ -1,0 +1,38 @@
+;; RELATORIO: written at termino:
+;;   frescogo-<ts>-<esq>-<dir>-placar.png  (screenshot)
+;;   frescogo-<ts>-<esq>-<dir>.txt         (golpe a golpe)
+;;   resultados.csv                        (one line per game, appended)
+
+func () {
+    val ts = os.date("%Y_%m_%d_%H_%M_%S")
+    os.execute("mkdir -p relatorios")
+    val base = "relatorios/frescogo-" ++ ts ++ "-" ++ NOMES.esq ++ "-" ++ NOMES.dir
+
+    pico.output.screenshot("window", base ++ "-placar.png")
+
+    val esq = REGRA.jog(:esq)
+    val dir = REGRA.jog(:dir)
+    val desc = ((CONF.descanso * 1s) - REGRA.descanso) / 1s -> math.floor
+
+    val f = io.open(base ++ ".txt", "w")
+    f::write(string.format("Data:      %s\n", ts))
+    f::write(string.format("Versao:    %s\n\n", conf.pars()))
+    f::write(string.format("Descanso:  %d s\n", desc))
+    f::write(string.format("Quedas:    %d\n\n", REGRA.quedas))
+    f::write(string.format("%-15s %5d pontos / %3d golpes / %6.2f km/h\n", NOMES.esq++":", esq.pontos -> math.floor, esq.golpes, esq.med))
+    f::write(string.format("%-15s %5d pontos / %3d golpes / %6.2f km/h\n\n", NOMES.dir++":", dir.pontos -> math.floor, dir.golpes, dir.med))
+    f::write(string.format("TOTAL:     %5d pontos\n", REGRA.total() -> math.floor))
+    loop s in #REGRA.seqs {
+        val seq = REGRA.seqs@s
+        f::write(string.format("\nSEQUENCIA %02d\n============\nTEMPO    DIR   KMH\n-----    ---   ---\n", s))
+        loop i in #seq {
+            val g = seq@i
+            f::write(string.format("%6d   %s   %3d\n", g.now - REGRA.now, (if g.jog == :esq => "->" => "<-"), REGRA.kmh(seq, i) -> math.floor))
+        }
+    }
+    f::close()
+
+    val csv = io.open("relatorios/resultados.csv", "a")
+    csv::write(string.format("%s ; %d ; %d ; %d ; %s ; %d ; %d ; %.2f ; %s ; %d ; %d ; %.2f\n", ts, REGRA.total() -> math.floor, REGRA.quedas, desc, NOMES.esq, esq.pontos -> math.floor, esq.golpes, esq.med, NOMES.dir, dir.pontos -> math.floor, dir.golpes, dir.med))
+    csv::close()
+}

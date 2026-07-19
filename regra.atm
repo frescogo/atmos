@@ -1,6 +1,7 @@
 val M = []
 
 func M.reset () {
+    set M.now      = pico.get.now()
     set M.seqs     = []
     set M.quedas   = 0
     set M.descanso = CONF.descanso * 1s
