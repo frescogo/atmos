@@ -23,11 +23,6 @@ task Partida () {
         set G.estado = :terminado
     }
 
-    spawn {
-        await until (REGRA.descanso <= 0)
-        pico.output.sound("data/snds/30s.wav")
-    }
-
     ;; fim de jogo: tempo esgotado ou quedas demais (aborta)
     val func fend () {
         (REGRA.tempo.restante() <= 0) ||

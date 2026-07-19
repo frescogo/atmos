@@ -103,6 +103,43 @@ task Digita (alvo) {
     }
 }
 
+;; UNDO: awaits C-Backspace holds until one actually undoes something,
+;; repairing REGRA according to the estado; the caller then restarts
+;; the Partida (a fresh instance resumes REGRA in :ocioso)
+task Undo () {
+    loop {
+        await Hold :Backspace
+        val ok = ifs {
+            (#REGRA.seqs == 0) => false
+            (G.estado == :ocioso) => do {
+                REGRA.undo()
+                true
+            }
+            (G.estado == :jogando.sacando) => do {
+                ;; saque atual (sem queda) + sequencia anterior
+                set REGRA.seqs@# = nil
+                if #REGRA.seqs > 0 {
+                    REGRA.undo()
+                }
+                true
+            }
+            (G.estado == :terminado) => do {
+                ;; queda de volta apenas se acabou por aborta
+                if REGRA.quedas >= conf.aborta() {
+                    set REGRA.quedas = REGRA.quedas - 1
+                }
+                set REGRA.seqs@# = nil
+                true
+            }
+            else => false   ;; :jogando: sem undo
+        }
+        if ok {
+            pico.output.sound("data/snds/undo.wav")
+        }
+        until (ok)
+    }
+}
+
 spawn Radar()
 spawn Tela()
 
@@ -111,40 +148,23 @@ spawn {
     loop {
         REGRA.reset()
         watching Hold :R {
+            ;; esgotado: uma vez por jogo (sobrevive a restarts da Partida)
             spawn {
-                ;; undo: desfaz a ultima sequencia (e sua queda)
-                loop on Hold :Backspace {
-                    val ok = ifs {
-                        (#REGRA.seqs == 0) => false
-                        (G.estado == :ocioso) => true
-                        else => false
-                    }
-                    if ok {
-                        pico.output.sound("data/snds/undo.wav")
-                        REGRA.undo()
-                    }
-                }
+                await until (REGRA.descanso <= 0)
+                pico.output.sound("data/snds/30s.wav")
             }
             loop {
-                watching Hold :S {
-                    await Partida()
-                }
-                watching Hold :Backspace {
+                ;; undo: repara e reinicia a Partida
+                watching Undo() {
+                    watching Hold :S {
+                        await Partida()
+                    }
                     loop {
                         pico.output.sound("data/snds/finish.wav")
                         await 2s    ;; garante tela limpa para o screenshot
                         relatorio()
                         await Hold :S
                     }
-                }
-                ;; undo do terminado: desfaz a ultima sequencia
-                ;; (e sua queda apenas se o jogo acabou por aborta)
-                if #REGRA.seqs > 0 {
-                    if REGRA.quedas >= conf.aborta() {
-                        set REGRA.quedas = REGRA.quedas - 1
-                    }
-                    set REGRA.seqs@# = nil
-                    pico.output.sound("data/snds/undo.wav")
                 }
             }
         }
