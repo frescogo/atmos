@@ -48,7 +48,7 @@ task Partida () {
                     await(false)
                 }
             }
-            set G.estado = :sacando
+            set G.estado = :jogando.sacando
             pico.output.sound("data/snds/start.wav")
             set REGRA.seqs@+ = []
             watching :key.dn [key=:Down, ctrl=true] {

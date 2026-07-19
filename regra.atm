@@ -7,6 +7,12 @@ func M.reset () {
     set M.descanso = CONF.descanso * 1s
 }
 
+;; undo: drops the last seq and its queda (caller guards #seqs > 0)
+func M.undo () {
+    set M.quedas = M.quedas - 1
+    set M.seqs@# = nil
+}
+
 ;; speed (km/h) of golpe `i` in `seq`:
 ;;  - radar golpes carry `kmh` (Phase 4)
 ;;  - manual golpes derive from the time to the NEXT golpe:
