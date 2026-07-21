@@ -67,7 +67,7 @@ set relatorio = require "relatorio"
 task Hold (key) {
     loop {
         await :key.dn [key=key, ctrl=true]
-        val e = await (:key.up || 1s)
+        val e = await <:key.up || 1s>
         while (e ?? :key.up)
     }
     pico.output.sound("data/snds/confirm.wav")
@@ -85,7 +85,7 @@ task Digita (alvo) {
     val old = NOMES@alvo
     set NOMES@alvo = "_"
     watching :key.dn [key=:Return] {
-        watching :key.dn [key=:Escape] || :key.dn [ctrl=true] {
+        watching <:key.dn [key=:Escape] || :key.dn [ctrl=true]> {
             loop e on :key.dn {
                 var cur = string.sub(NOMES@alvo, 1, -2)
                 set cur = ifs {

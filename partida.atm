@@ -29,7 +29,7 @@ task Partida () {
         (REGRA.quedas >= conf.aborta())
     }
 
-    watching until fend() {
+    watching until (fend()) {
         loop {
             set G.estado = :ocioso
             par:any {
@@ -60,7 +60,7 @@ task Partida () {
                     par:any {
                         await (:key.dn [key=:Left] || :key.dn [key=:Right])
                     } with {
-                        await (:radar until it.vel>=CONF.saque)
+                        await :radar until (it.vel>=CONF.saque)
                     }
                 }
                 set G.estado = :jogando
