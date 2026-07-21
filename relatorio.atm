@@ -18,7 +18,7 @@ func () {
     f::write(string.format("Data:      %s\n", ts))
     f::write(string.format("Versao:    %s\n\n", conf.pars()))
     f::write(string.format("Descanso:  %d s\n", desc))
-    f::write(string.format("Quedas:    %d\n\n", REGRA.quedas))
+    f::write(string.format("Quedas:    %d\n\n", REGRA.quedas.tot()))
     f::write(string.format("%-15s %5d pontos / %3d golpes / %6.2f km/h\n", NOMES.esq++":", esq.pontos -> math.floor, esq.golpes, esq.med))
     f::write(string.format("%-15s %5d pontos / %3d golpes / %6.2f km/h\n\n", NOMES.dir++":", dir.pontos -> math.floor, dir.golpes, dir.med))
     f::write(string.format("TOTAL:     %5d pontos\n", REGRA.total() -> math.floor))
@@ -33,6 +33,6 @@ func () {
     f::close()
 
     val csv = io.open("relatorios/resultados.csv", "a")
-    csv::write(string.format("%s ; %d ; %d ; %d ; %s ; %d ; %d ; %.2f ; %s ; %d ; %d ; %.2f\n", ts, REGRA.total() -> math.floor, REGRA.quedas, desc, NOMES.esq, esq.pontos -> math.floor, esq.golpes, esq.med, NOMES.dir, dir.pontos -> math.floor, dir.golpes, dir.med))
+    csv::write(string.format("%s ; %d ; %d ; %d ; %s ; %d ; %d ; %.2f ; %s ; %d ; %d ; %.2f\n", ts, REGRA.total() -> math.floor, REGRA.quedas.tot(), desc, NOMES.esq, esq.pontos -> math.floor, esq.golpes, esq.med, NOMES.dir, dir.pontos -> math.floor, dir.golpes, dir.med))
     csv::close()
 }

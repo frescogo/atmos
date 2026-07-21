@@ -157,7 +157,7 @@ task Quedas () {
         pico.set.pencil [ color=:red, style=:fill ]
         pico.output.draw.oval(rs.oval)
         pico.set.pencil [ color=:white ]
-        pico.output.draw.text.dyn(:text.quedas, tostring(REGRA.quedas), rs.num)
+        pico.output.draw.text.dyn(:text.quedas, tostring(REGRA.quedas.tot()), rs.num)
     }
 }
 
@@ -223,7 +223,7 @@ task Pontos () {
 
         pico.output.draw.image("data/icos/trophy.png", rs.tro)
         val ps = REGRA.equ()
-        val conta = "(" ++ math.floor(ps.esq + ps.dir) ++ " - " ++ REGRA.quedas_pct() ++ "%)"
+        val conta = "(" ++ math.floor(ps.esq + ps.dir) ++ " - " ++ REGRA.quedas.pct() ++ "%)"
         pico.set.pencil [ color=COLORS.gray ]
         pico.output.draw.text.dyn(:text.conta, conta, rs.cta)
     }

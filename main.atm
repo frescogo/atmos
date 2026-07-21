@@ -125,8 +125,8 @@ task Undo () {
             }
             (G.estado == :terminado) => do {
                 ;; queda de volta apenas se acabou por aborta
-                if REGRA.quedas >= conf.aborta() {
-                    set REGRA.quedas = REGRA.quedas - 1
+                if REGRA.quedas.auto >= conf.aborta() {
+                    set REGRA.quedas.auto = REGRA.quedas.auto - 1
                 }
                 set REGRA.seqs@# = nil
                 true
@@ -184,6 +184,18 @@ spawn {
         } with {
             await Hold :0
             await Digita :arb
+        } with {
+            ;; quedas manual: C-= adds (v4.3 keyCode '=')
+            await Hold("=")
+            set REGRA.quedas.manual = REGRA.quedas.manual + 1
+            pico.output.sound("data/snds/undo.wav")
+        } with {
+            ;; quedas manual: C-- subtracts, guarded to total > 0
+            await Hold("-")
+            if REGRA.quedas.tot() > 0 {
+                set REGRA.quedas.manual = REGRA.quedas.manual - 1
+                pico.output.sound("data/snds/undo.wav")
+            }
         }
     }
 }
