@@ -3,7 +3,8 @@ val M = []
 func M.reset () {
     set M.now      = pico.get.now()
     set M.seqs     = []
-    set M.quedas   = [ auto=0, manual=0 ]   ;; quedas: auto (via queda) / manual (C-- / C-=)
+    set M.quedas.auto   = 0
+    set M.quedas.manual = 0
     set M.descanso = CONF.descanso * 1s
 }
 
@@ -109,6 +110,9 @@ func M.equ () {
         }
     }
 }
+
+;; quedas: auto (via queda) / manual (C-- / C-=); reset zeroes both
+set M.quedas = [ auto=0, manual=0 ]
 
 ;; total quedas shown/scored (auto + manual)
 func M.quedas.tot () {
